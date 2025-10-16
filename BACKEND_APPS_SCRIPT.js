@@ -1,8 +1,21 @@
-// Google Apps Script Backend untuk Breeding Ayam Aduan
-// Deploy sebagai Web App dengan access: Anyone
+// ============================================
+// GOOGLE APPS SCRIPT - BACKEND API
+// Website Breeding Ayam Aduan
+// ============================================
 
-// KONFIGURASI: Ganti dengan Spreadsheet ID Anda
-const SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || 'YOUR_SPREADSHEET_ID';
+// 📝 INSTRUKSI SETUP:
+// 1. Copy semua kode ini ke Google Apps Script editor
+// 2. Ganti 'YOUR_SPREADSHEET_ID' di baris 15 dengan Spreadsheet ID Anda
+//    (ID ada di URL: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit)
+// 3. Klik Save (💾)
+// 4. Klik Deploy > New deployment
+// 5. Pilih type: Web app
+// 6. Execute as: Me
+// 7. Who has access: Anyone
+// 8. Deploy dan copy Web App URL
+
+// ⚙️ KONFIGURASI - GANTI INI!
+const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID';  // ← GANTI DENGAN ID SPREADSHEET ANDA!
 
 // Helper: Get sheet by name
 function getSheet(sheetName) {
