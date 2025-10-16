@@ -86,7 +86,7 @@ const BreedingModule = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Yakin ingin menghapus data ini?')) {
       try {
-        await api.deleteBreeding(id);
+        await apiV1.deleteBreeding(id);
         toast.success('Data breeding berhasil dihapus');
         loadData();
       } catch (error) {
