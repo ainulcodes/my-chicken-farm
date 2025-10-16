@@ -30,8 +30,8 @@ const BreedingModule = () => {
     setLoading(true);
     try {
       const [breeding, indukan] = await Promise.all([
-        api.getBreeding(),
-        api.getAyamInduk()
+        apiV1.getBreeding(),
+        apiV1.getAyamInduk()
       ]);
       setBreedingList(breeding);
       setAyamIndukList(indukan);
