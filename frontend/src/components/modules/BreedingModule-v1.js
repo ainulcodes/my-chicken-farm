@@ -67,10 +67,10 @@ const BreedingModule = () => {
     setLoading(true);
     try {
       if (editingBreeding) {
-        await api.updateBreeding(editingBreeding.id, formData);
+        await apiV1.updateBreeding(editingBreeding.id, formData);
         toast.success('Data breeding berhasil diupdate');
       } else {
-        await api.addBreeding(formData);
+        await apiV1.addBreeding(formData);
         toast.success('Data breeding berhasil ditambahkan');
       }
       setIsDialogOpen(false);
