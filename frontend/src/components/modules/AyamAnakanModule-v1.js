@@ -16,6 +16,8 @@ const AyamAnakanModule = () => {
   const [loading, setLoading] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
   const [filterBreeding, setFilterBreeding] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(9); // 3 kolom x 3 baris
   const [formData, setFormData] = useState({
     breeding_id: '',
     kode: '',
@@ -150,13 +152,29 @@ const AyamAnakanModule = () => {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = anakanList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(anakanList.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset ke halaman 1 saat filter berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterBreeding]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Ayam Anakan</h2>
           <p className="text-sm text-gray-500">
-            Kelola data ayam hasil breeding
+            {anakanList.length} ayam anakan
             {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
           </p>
         </div>
@@ -290,8 +308,9 @@ const AyamAnakanModule = () => {
           <p className="text-gray-500">Belum ada data ayam anakan</p>
         </Card>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="anakan-list">
-          {anakanList.map((anakan) => (
+          {currentItems.map((anakan) => (
             <Card key={anakan.id} className="hover:shadow-lg transition-shadow" data-testid={`anakan-item-${anakan.id}`}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
@@ -347,6 +366,62 @@ const AyamAnakanModule = () => {
             </Card>
           ))}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <Button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              variant="outline"
+              size="sm"
+              className="px-3"
+            >
+              ← Prev
+            </Button>
+
+            <div className="flex gap-1">
+              {[...Array(totalPages)].map((_, index) => {
+                const pageNumber = index + 1;
+                // Show first, last, current, and adjacent pages
+                if (
+                  pageNumber === 1 ||
+                  pageNumber === totalPages ||
+                  (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                ) {
+                  return (
+                    <Button
+                      key={pageNumber}
+                      onClick={() => handlePageChange(pageNumber)}
+                      variant={currentPage === pageNumber ? "default" : "outline"}
+                      size="sm"
+                      className={`px-3 ${currentPage === pageNumber ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                    >
+                      {pageNumber}
+                    </Button>
+                  );
+                } else if (
+                  pageNumber === currentPage - 2 ||
+                  pageNumber === currentPage + 2
+                ) {
+                  return <span key={pageNumber} className="px-2">...</span>;
+                }
+                return null;
+              })}
+            </div>
+
+            <Button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              variant="outline"
+              size="sm"
+              className="px-3"
+            >
+              Next →
+            </Button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

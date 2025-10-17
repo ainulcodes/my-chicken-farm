@@ -18,6 +18,8 @@ const AyamIndukModuleV1 = () => {
   const [editingAyam, setEditingAyam] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(9); // 3 kolom x 3 baris
   const [formData, setFormData] = useState({
     kode: '',
     jenis_kelamin: '',
@@ -156,13 +158,24 @@ const AyamIndukModuleV1 = () => {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = ayamList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(ayamList.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Ayam Indukan</h2>
           <p className="text-sm text-gray-500">
-            Kelola data ayam indukan Anda
+            {ayamList.length} ayam indukan
             {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
           </p>
         </div>
@@ -269,8 +282,9 @@ const AyamIndukModuleV1 = () => {
           <p className="text-gray-500">Belum ada data ayam indukan</p>
         </Card>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="indukan-list">
-          {ayamList.map((ayam) => (
+          {currentItems.map((ayam) => (
             <Card key={ayam.id} className="hover:shadow-lg transition-shadow" data-testid={`indukan-item-${ayam.id}`}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
@@ -325,6 +339,61 @@ const AyamIndukModuleV1 = () => {
             </Card>
           ))}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <Button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              variant="outline"
+              size="sm"
+              className="px-3"
+            >
+              ← Prev
+            </Button>
+
+            <div className="flex gap-1">
+              {[...Array(totalPages)].map((_, index) => {
+                const pageNumber = index + 1;
+                if (
+                  pageNumber === 1 ||
+                  pageNumber === totalPages ||
+                  (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                ) {
+                  return (
+                    <Button
+                      key={pageNumber}
+                      onClick={() => handlePageChange(pageNumber)}
+                      variant={currentPage === pageNumber ? "default" : "outline"}
+                      size="sm"
+                      className={`px-3 ${currentPage === pageNumber ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                    >
+                      {pageNumber}
+                    </Button>
+                  );
+                } else if (
+                  pageNumber === currentPage - 2 ||
+                  pageNumber === currentPage + 2
+                ) {
+                  return <span key={pageNumber} className="px-2">...</span>;
+                }
+                return null;
+              })}
+            </div>
+
+            <Button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              variant="outline"
+              size="sm"
+              className="px-3"
+            >
+              Next →
+            </Button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );
