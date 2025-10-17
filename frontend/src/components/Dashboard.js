@@ -92,7 +92,12 @@ const Dashboard = () => {
 
         {/* Active Module Content */}
         <div className="animate-fadeIn">
-          {activeModule === 'indukan' && <AyamIndukModule />}
+          {activeModule === 'indukan' && (
+            <>
+              {console.log('🔵 Rendering AyamIndukModule, activeModule:', activeModule)}
+              <AyamIndukModule />
+            </>
+          )}
           {activeModule === 'breeding' && <BreedingModule />}
           {activeModule === 'anakan' && <AyamAnakanModule />}
         </div>

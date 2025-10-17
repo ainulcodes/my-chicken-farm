@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
+import { cachedAPI } from '../../services/cachedApi';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -8,11 +8,16 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 
+console.log('🟢 AyamIndukModule loaded');
+console.log('📦 cachedAPI imported:', cachedAPI);
+
 const AyamIndukModule = () => {
+  console.log('🎯 AyamIndukModule component initialized');
   const [ayamList, setAyamList] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAyam, setEditingAyam] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
   const [formData, setFormData] = useState({
     kode: '',
     jenis_kelamin: '',
@@ -25,11 +30,31 @@ const AyamIndukModule = () => {
     loadAyamInduk();
   }, []);
 
-  const loadAyamInduk = async () => {
+  const loadAyamInduk = async (forceRefresh = false) => {
+    console.log('🔄 loadAyamInduk called, forceRefresh:', forceRefresh);
     setLoading(true);
     try {
-      const data = await api.getAyamInduk();
-      setAyamList(data);
+      console.log('📞 Calling cachedAPI.getAyamInduk...');
+      const response = await cachedAPI.getAyamInduk(forceRefresh);
+      console.log('📥 Response received:', {
+        dataLength: response.data?.length,
+        fromCache: response.fromCache,
+        loadTime: response.loadTime
+      });
+      setAyamList(response.data);
+      setIsFromCache(response.fromCache);
+
+      // Show indicator jika data dari cache
+      if (response.fromCache && !response.stale) {
+        console.log(`✓ Data loaded from cache in ${response.loadTime}ms`);
+        toast.success(`⚡ Loaded ${response.data.length} items in ${response.loadTime}ms (from cache)`);
+      } else if (response.stale) {
+        toast.warning('Menggunakan data offline (koneksi bermasalah)');
+      } else if (forceRefresh) {
+        toast.success(`✅ Synced ${response.data.length} items in ${response.loadTime}ms`);
+      } else {
+        toast.success(`✅ Loaded ${response.data.length} items in ${response.loadTime}ms`);
+      }
     } catch (error) {
       toast.error('Gagal memuat data ayam indukan');
     } finally {
@@ -42,17 +67,29 @@ const AyamIndukModule = () => {
     setLoading(true);
     try {
       if (editingAyam) {
-        await api.updateAyamInduk(editingAyam.id, formData);
-        toast.success('Ayam indukan berhasil diupdate');
+        const response = await cachedAPI.updateAyamInduk(editingAyam.id, formData);
+        if (response.success) {
+          // Update lokal tanpa refetch
+          setAyamList(ayamList.map(a =>
+            a.id === editingAyam.id ? { ...a, ...formData } : a
+          ));
+          toast.success('Ayam indukan berhasil diupdate');
+        }
       } else {
-        await api.addAyamInduk(formData);
-        toast.success('Ayam indukan berhasil ditambahkan');
+        const response = await cachedAPI.addAyamInduk(formData);
+        if (response.success && response.data) {
+          // Update lokal tanpa refetch
+          setAyamList([...ayamList, response.data]);
+          toast.success('Ayam indukan berhasil ditambahkan');
+        }
       }
       setIsDialogOpen(false);
       resetForm();
-      loadAyamInduk();
+      // TIDAK perlu loadAyamInduk() lagi karena sudah optimistic update
     } catch (error) {
       toast.error('Gagal menyimpan data');
+      // Jika error, refetch untuk sync
+      loadAyamInduk();
     } finally {
       setLoading(false);
     }
@@ -61,11 +98,16 @@ const AyamIndukModule = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Yakin ingin menghapus data ini?')) {
       try {
-        await api.deleteAyamInduk(id);
-        toast.success('Ayam indukan berhasil dihapus');
-        loadAyamInduk();
+        const response = await cachedAPI.deleteAyamInduk(id);
+        if (response.success) {
+          // Update lokal tanpa refetch
+          setAyamList(ayamList.filter(a => a.id !== id));
+          toast.success('Ayam indukan berhasil dihapus');
+        }
       } catch (error) {
         toast.error('Gagal menghapus data');
+        // Jika error, refetch untuk sync
+        loadAyamInduk();
       }
     }
   };
@@ -105,10 +147,23 @@ const AyamIndukModule = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Ayam Indukan</h2>
-          <p className="text-sm text-gray-500">Kelola data ayam indukan Anda</p>
+          <p className="text-sm text-gray-500">
+            Kelola data ayam indukan Anda
+            {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
+          </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-          <DialogTrigger asChild>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => loadAyamInduk(true)}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="text-gray-600"
+          >
+            {loading ? 'Syncing...' : '🔄 Refresh'}
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+            <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-md" data-testid="add-indukan-button">
               + Tambah Indukan
             </Button>

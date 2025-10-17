@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiV1 } from '../../services/api-v1';
+import { cachedAPI } from '../../services/cachedApi';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -14,6 +14,7 @@ const AyamAnakanModule = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAnakan, setEditingAnakan] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
   const [filterBreeding, setFilterBreeding] = useState('all');
   const [formData, setFormData] = useState({
     breeding_id: '',
@@ -31,12 +32,24 @@ const AyamAnakanModule = () => {
     loadAnakan();
   }, [filterBreeding]);
 
-  const loadData = async () => {
+  const loadData = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const breeding = await apiV1.getBreeding();
-      setBreedingList(breeding);
-      loadAnakan();
+      const [anakanResponse, breedingResponse] = await Promise.all([
+        cachedAPI.getAyamAnakan(null, forceRefresh),
+        cachedAPI.getBreeding(forceRefresh)
+      ]);
+      setAnakanList(anakanResponse.data);
+      setBreedingList(breedingResponse.data);
+      setIsFromCache(anakanResponse.fromCache && breedingResponse.fromCache);
+
+      if (anakanResponse.fromCache && breedingResponse.fromCache && !forceRefresh) {
+        toast.success(`⚡ Loaded from cache in ${Math.max(anakanResponse.loadTime, breedingResponse.loadTime)}ms`);
+      } else if (forceRefresh) {
+        toast.success('✅ Data berhasil disinkronkan');
+      } else {
+        toast.success('✅ Data berhasil dimuat');
+      }
     } catch (error) {
       toast.error('Gagal memuat data');
     } finally {
@@ -47,8 +60,8 @@ const AyamAnakanModule = () => {
   const loadAnakan = async () => {
     try {
       const breedingId = (filterBreeding === 'all' || !filterBreeding) ? null : filterBreeding;
-      const data = await apiV1.getAyamAnakan(breedingId);
-      setAnakanList(data);
+      const response = await cachedAPI.getAyamAnakan(breedingId, false);
+      setAnakanList(response.data);
     } catch (error) {
       toast.error('Gagal memuat data anakan');
     }
@@ -64,17 +77,27 @@ const AyamAnakanModule = () => {
     setLoading(true);
     try {
       if (editingAnakan) {
-        await apiV1.updateAyamAnakan(editingAnakan.id, formData);
-        toast.success('Ayam anakan berhasil diupdate');
+        const response = await cachedAPI.updateAyamAnakan(editingAnakan.id, formData);
+        if (response.success) {
+          // Optimistic update
+          setAnakanList(anakanList.map(a =>
+            a.id === editingAnakan.id ? { ...a, ...formData } : a
+          ));
+          toast.success('Ayam anakan berhasil diupdate');
+        }
       } else {
-        await apiV1.addAyamAnakan(formData);
-        toast.success('Ayam anakan berhasil ditambahkan');
+        const response = await cachedAPI.addAyamAnakan(formData);
+        if (response.success && response.data) {
+          // Optimistic update
+          setAnakanList([...anakanList, response.data]);
+          toast.success('Ayam anakan berhasil ditambahkan');
+        }
       }
       setIsDialogOpen(false);
       resetForm();
-      loadAnakan();
     } catch (error) {
       toast.error('Gagal menyimpan data');
+      loadAnakan(); // Refetch on error
     } finally {
       setLoading(false);
     }
@@ -83,11 +106,15 @@ const AyamAnakanModule = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Yakin ingin menghapus data ini?')) {
       try {
-        await apiV1.deleteAyamAnakan(id);
-        toast.success('Ayam anakan berhasil dihapus');
-        loadAnakan();
+        const response = await cachedAPI.deleteAyamAnakan(id);
+        if (response.success) {
+          // Optimistic update
+          setAnakanList(anakanList.filter(a => a.id !== id));
+          toast.success('Ayam anakan berhasil dihapus');
+        }
       } catch (error) {
         toast.error('Gagal menghapus data');
+        loadAnakan(); // Refetch on error
       }
     }
   };
@@ -127,9 +154,21 @@ const AyamAnakanModule = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Ayam Anakan</h2>
-          <p className="text-sm text-gray-500">Kelola data ayam hasil breeding</p>
+          <p className="text-sm text-gray-500">
+            Kelola data ayam hasil breeding
+            {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
+          </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            onClick={() => loadData(true)}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="text-gray-600"
+          >
+            {loading ? 'Syncing...' : '🔄 Refresh'}
+          </Button>
           <Select value={filterBreeding} onValueChange={setFilterBreeding}>
             <SelectTrigger className="w-full sm:w-[200px]" data-testid="filter-breeding-select">
               <SelectValue placeholder="Filter Breeding" />

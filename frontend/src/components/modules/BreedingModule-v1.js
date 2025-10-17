@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiV1 } from '../../services/api-v1';
+import { cachedAPI } from '../../services/cachedApi';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -14,6 +14,7 @@ const BreedingModule = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBreeding, setEditingBreeding] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
   const [formData, setFormData] = useState({
     pejantan_id: '',
     betina_id: '',
@@ -26,15 +27,24 @@ const BreedingModule = () => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const [breeding, indukan] = await Promise.all([
-        apiV1.getBreeding(),
-        apiV1.getAyamInduk()
+      const [breedingResponse, indukanResponse] = await Promise.all([
+        cachedAPI.getBreeding(forceRefresh),
+        cachedAPI.getAyamInduk(forceRefresh)
       ]);
-      setBreedingList(breeding);
-      setAyamIndukList(indukan);
+      setBreedingList(breedingResponse.data);
+      setAyamIndukList(indukanResponse.data);
+      setIsFromCache(breedingResponse.fromCache && indukanResponse.fromCache);
+
+      if (breedingResponse.fromCache && indukanResponse.fromCache && !forceRefresh) {
+        toast.success(`⚡ Loaded from cache in ${Math.max(breedingResponse.loadTime, indukanResponse.loadTime)}ms`);
+      } else if (forceRefresh) {
+        toast.success('✅ Data berhasil disinkronkan');
+      } else {
+        toast.success('✅ Data berhasil dimuat');
+      }
     } catch (error) {
       toast.error('Gagal memuat data');
     } finally {
@@ -42,7 +52,7 @@ const BreedingModule = () => {
     }
   };
 
-  const getAyamName = (id, gender) => {
+  const getAyamName = (id) => {
     const ayam = ayamIndukList.find(a => a.id === id);
     return ayam ? `${ayam.kode} (${ayam.ras})` : '-';
   };
@@ -67,17 +77,27 @@ const BreedingModule = () => {
     setLoading(true);
     try {
       if (editingBreeding) {
-        await apiV1.updateBreeding(editingBreeding.id, formData);
-        toast.success('Data breeding berhasil diupdate');
+        const response = await cachedAPI.updateBreeding(editingBreeding.id, formData);
+        if (response.success) {
+          // Optimistic update
+          setBreedingList(breedingList.map(b =>
+            b.id === editingBreeding.id ? { ...b, ...formData } : b
+          ));
+          toast.success('Data breeding berhasil diupdate');
+        }
       } else {
-        await apiV1.addBreeding(formData);
-        toast.success('Data breeding berhasil ditambahkan');
+        const response = await cachedAPI.addBreeding(formData);
+        if (response.success && response.data) {
+          // Optimistic update
+          setBreedingList([...breedingList, response.data]);
+          toast.success('Data breeding berhasil ditambahkan');
+        }
       }
       setIsDialogOpen(false);
       resetForm();
-      loadData();
     } catch (error) {
       toast.error('Gagal menyimpan data');
+      loadData(); // Refetch on error
     } finally {
       setLoading(false);
     }
@@ -86,11 +106,15 @@ const BreedingModule = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Yakin ingin menghapus data ini?')) {
       try {
-        await apiV1.deleteBreeding(id);
-        toast.success('Data breeding berhasil dihapus');
-        loadData();
+        const response = await cachedAPI.deleteBreeding(id);
+        if (response.success) {
+          // Optimistic update
+          setBreedingList(breedingList.filter(b => b.id !== id));
+          toast.success('Data breeding berhasil dihapus');
+        }
       } catch (error) {
         toast.error('Gagal menghapus data');
+        loadData(); // Refetch on error
       }
     }
   };
@@ -133,10 +157,23 @@ const BreedingModule = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Data Breeding</h2>
-          <p className="text-sm text-gray-500">Kelola data perkawinan ayam</p>
+          <p className="text-sm text-gray-500">
+            Kelola data perkawinan ayam
+            {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
+          </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-          <DialogTrigger asChild>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => loadData(true)}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="text-gray-600"
+          >
+            {loading ? 'Syncing...' : '🔄 Refresh'}
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+            <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl shadow-md" data-testid="add-breeding-button">
               + Tambah Breeding
             </Button>
@@ -226,6 +263,7 @@ const BreedingModule = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* List */}
