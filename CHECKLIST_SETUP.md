@@ -154,11 +154,6 @@ REACT_APP_GOOGLE_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
 - [ ] Tunggu compilation selesai
 - [ ] Browser otomatis buka atau akses `http://localhost:3000`
 
-### Jika di Emergent:
-- [ ] Aplikasi sudah auto-run!
-- [ ] Akses URL yang diberikan
-- [ ] Jika perlu restart: `cd /app/frontend && yarn start`
-
 ### Verifikasi:
 - [ ] Aplikasi terbuka tanpa error
 - [ ] Login page tampil dengan benar

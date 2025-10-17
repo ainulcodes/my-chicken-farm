@@ -72,12 +72,27 @@ const AyamIndukModuleV1 = () => {
 
   const handleEdit = (ayam) => {
     setEditingAyam(ayam);
+
+    // Convert ISO date string to YYYY-MM-DD format for date input
+    let tanggalLahir = ayam.tanggal_lahir;
+    if (tanggalLahir) {
+      try {
+        // If it's ISO format (e.g., "2003-03-10T17:00:00.000Z"), extract date part
+        const date = new Date(tanggalLahir);
+        if (!isNaN(date.getTime())) {
+          tanggalLahir = date.toISOString().split('T')[0];
+        }
+      } catch (e) {
+        console.error('Error parsing date:', e);
+      }
+    }
+
     setFormData({
       kode: ayam.kode,
       jenis_kelamin: ayam.jenis_kelamin,
       ras: ayam.ras,
       warna: ayam.warna,
-      tanggal_lahir: ayam.tanggal_lahir
+      tanggal_lahir: tanggalLahir
     });
     setIsDialogOpen(true);
   };
@@ -222,7 +237,13 @@ const AyamIndukModuleV1 = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Tanggal Lahir:</span>
-                    <span className="font-medium">{ayam.tanggal_lahir}</span>
+                    <span className="font-medium">
+                      {ayam.tanggal_lahir ? new Date(ayam.tanggal_lahir).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) : '-'}
+                    </span>
                   </div>
                 </div>
                 <div className="flex space-x-2 mt-4 pt-4 border-t">

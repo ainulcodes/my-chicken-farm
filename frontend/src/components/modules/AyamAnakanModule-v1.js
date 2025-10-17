@@ -14,7 +14,7 @@ const AyamAnakanModule = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAnakan, setEditingAnakan] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [filterBreeding, setFilterBreeding] = useState('');
+  const [filterBreeding, setFilterBreeding] = useState('all');
   const [formData, setFormData] = useState({
     breeding_id: '',
     kode: '',
@@ -34,7 +34,7 @@ const AyamAnakanModule = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const breeding = await api.getBreeding();
+      const breeding = await apiV1.getBreeding();
       setBreedingList(breeding);
       loadAnakan();
     } catch (error) {
@@ -46,7 +46,8 @@ const AyamAnakanModule = () => {
 
   const loadAnakan = async () => {
     try {
-      const data = await api.getAyamAnakan(filterBreeding || null);
+      const breedingId = (filterBreeding === 'all' || !filterBreeding) ? null : filterBreeding;
+      const data = await apiV1.getAyamAnakan(breedingId);
       setAnakanList(data);
     } catch (error) {
       toast.error('Gagal memuat data anakan');
@@ -63,10 +64,10 @@ const AyamAnakanModule = () => {
     setLoading(true);
     try {
       if (editingAnakan) {
-        await api.updateAyamAnakan(editingAnakan.id, formData);
+        await apiV1.updateAyamAnakan(editingAnakan.id, formData);
         toast.success('Ayam anakan berhasil diupdate');
       } else {
-        await api.addAyamAnakan(formData);
+        await apiV1.addAyamAnakan(formData);
         toast.success('Ayam anakan berhasil ditambahkan');
       }
       setIsDialogOpen(false);
@@ -82,7 +83,7 @@ const AyamAnakanModule = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Yakin ingin menghapus data ini?')) {
       try {
-        await api.deleteAyamAnakan(id);
+        await apiV1.deleteAyamAnakan(id);
         toast.success('Ayam anakan berhasil dihapus');
         loadAnakan();
       } catch (error) {
@@ -134,7 +135,7 @@ const AyamAnakanModule = () => {
               <SelectValue placeholder="Filter Breeding" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Semua Breeding</SelectItem>
+              <SelectItem value="all">Semua Breeding</SelectItem>
               {breedingList.map((breeding) => (
                 <SelectItem key={breeding.id} value={breeding.id}>
                   #{breeding.id?.substring(0, 8)}

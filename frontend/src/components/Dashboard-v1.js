@@ -29,7 +29,7 @@ const Dashboard = () => {
                 <h1 className="text-xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
                   Breeding Ayam - V1
                 </h1>
-                <p className="text-xs text-gray-500">Sistem Manajemen Sederhana (Tanpa Login)</p>
+                <p className="text-xs text-gray-500">Sistem Manajemen Sederhana</p>
               </div>
             </div>
           </div>

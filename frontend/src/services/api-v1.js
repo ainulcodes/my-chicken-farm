@@ -6,6 +6,14 @@ const SHEETS_API_URL = process.env.REACT_APP_SHEETS_API_URL || '';
 class SheetsAPIV1 {
   constructor() {
     this.baseURL = SHEETS_API_URL;
+
+    // Validate API URL is configured
+    if (!this.baseURL || this.baseURL === '') {
+      console.error('❌ REACT_APP_SHEETS_API_URL tidak dikonfigurasi di .env.local!');
+      console.error('Tambahkan: REACT_APP_SHEETS_API_URL=YOUR_WEB_APP_URL');
+    } else {
+      console.log('✅ API URL configured:', this.baseURL);
+    }
   }
 
   // Ayam Induk APIs
@@ -20,27 +28,47 @@ class SheetsAPIV1 {
   }
 
   async addAyamInduk(data) {
-    const response = await axios.post(this.baseURL, {
-      action: 'add_ayam_induk',
-      ...data
-    });
-    return response.data;
+    try {
+      console.log('📤 Sending add ayam induk:', data);
+      // Use GET with action parameter (CORS workaround for Google Apps Script)
+      const params = new URLSearchParams({
+        action: 'add_ayam_induk',
+        ...data
+      });
+      const response = await axios.get(`${this.baseURL}?${params}`);
+      console.log('✅ Add ayam induk response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Add ayam induk error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error;
+    }
   }
 
   async updateAyamInduk(id, data) {
-    const response = await axios.post(this.baseURL, {
-      action: 'update_ayam_induk',
-      id,
-      ...data
-    });
-    return response.data;
+    try {
+      console.log('📤 Sending update ayam induk:', { id, ...data });
+      const params = new URLSearchParams({
+        action: 'update_ayam_induk',
+        id,
+        ...data
+      });
+      const response = await axios.get(`${this.baseURL}?${params}`);
+      console.log('✅ Update ayam induk response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update ayam induk error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error;
+    }
   }
 
   async deleteAyamInduk(id) {
-    const response = await axios.post(this.baseURL, {
+    const params = new URLSearchParams({
       action: 'delete_ayam_induk',
       id
     });
+    const response = await axios.get(`${this.baseURL}?${params}`);
     return response.data;
   }
 
@@ -56,27 +84,30 @@ class SheetsAPIV1 {
   }
 
   async addBreeding(data) {
-    const response = await axios.post(this.baseURL, {
+    const params = new URLSearchParams({
       action: 'add_breeding',
       ...data
     });
+    const response = await axios.get(`${this.baseURL}?${params}`);
     return response.data;
   }
 
   async updateBreeding(id, data) {
-    const response = await axios.post(this.baseURL, {
+    const params = new URLSearchParams({
       action: 'update_breeding',
       id,
       ...data
     });
+    const response = await axios.get(`${this.baseURL}?${params}`);
     return response.data;
   }
 
   async deleteBreeding(id) {
-    const response = await axios.post(this.baseURL, {
+    const params = new URLSearchParams({
       action: 'delete_breeding',
       id
     });
+    const response = await axios.get(`${this.baseURL}?${params}`);
     return response.data;
   }
 
@@ -96,27 +127,30 @@ class SheetsAPIV1 {
   }
 
   async addAyamAnakan(data) {
-    const response = await axios.post(this.baseURL, {
+    const params = new URLSearchParams({
       action: 'add_ayam_anakan',
       ...data
     });
+    const response = await axios.get(`${this.baseURL}?${params}`);
     return response.data;
   }
 
   async updateAyamAnakan(id, data) {
-    const response = await axios.post(this.baseURL, {
+    const params = new URLSearchParams({
       action: 'update_ayam_anakan',
       id,
       ...data
     });
+    const response = await axios.get(`${this.baseURL}?${params}`);
     return response.data;
   }
 
   async deleteAyamAnakan(id) {
-    const response = await axios.post(this.baseURL, {
+    const params = new URLSearchParams({
       action: 'delete_ayam_anakan',
       id
     });
+    const response = await axios.get(`${this.baseURL}?${params}`);
     return response.data;
   }
 }
