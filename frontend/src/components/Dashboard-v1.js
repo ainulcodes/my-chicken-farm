@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle } from './ui/card';
 import AyamIndukModuleV1 from './modules/AyamIndukModule-v1';
 import BreedingModuleV1 from './modules/BreedingModule-v1';
 import AyamAnakanModuleV1 from './modules/AyamAnakanModule-v1';
+import BreedingTreePageV1 from './modules/BreedingTreePage-v1';
 
 const Dashboard = () => {
   const [activeModule, setActiveModule] = useState('indukan');
@@ -11,6 +12,7 @@ const Dashboard = () => {
     { id: 'indukan', name: 'Ayam Indukan', icon: '🐓', color: 'from-emerald-500 to-teal-600' },
     { id: 'breeding', name: 'Breeding', icon: '💑', color: 'from-blue-500 to-cyan-600' },
     { id: 'anakan', name: 'Ayam Anakan', icon: '🐣', color: 'from-amber-500 to-orange-600' },
+    { id: 'silsilah', name: 'Silsilah', icon: '🌳', color: 'from-purple-500 to-pink-600' },
   ];
 
   return (
@@ -39,7 +41,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Module Navigation */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {modules.map((module) => (
             <Card
               key={module.id}
@@ -70,6 +72,7 @@ const Dashboard = () => {
           {activeModule === 'indukan' && <AyamIndukModuleV1 />}
           {activeModule === 'breeding' && <BreedingModuleV1 />}
           {activeModule === 'anakan' && <AyamAnakanModuleV1 />}
+          {activeModule === 'silsilah' && <BreedingTreePageV1 />}
         </div>
       </main>
     </div>
