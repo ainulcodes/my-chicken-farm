@@ -38,12 +38,13 @@ const BreedingModule = () => {
       setAyamIndukList(indukanResponse.data);
       setIsFromCache(breedingResponse.fromCache && indukanResponse.fromCache);
 
-      if (breedingResponse.fromCache && indukanResponse.fromCache && !forceRefresh) {
-        toast.success(`⚡ Loaded from cache in ${Math.max(breedingResponse.loadTime, indukanResponse.loadTime)}ms`);
-      } else if (forceRefresh) {
-        toast.success('✅ Data berhasil disinkronkan');
-      } else {
-        toast.success('✅ Data berhasil dimuat');
+      // Hanya tampilkan notifikasi saat fetch dari API
+      if (!breedingResponse.fromCache || !indukanResponse.fromCache) {
+        if (forceRefresh) {
+          toast.success('✅ Data berhasil disinkronkan');
+        } else {
+          toast.success('✅ Data berhasil dimuat');
+        }
       }
     } catch (error) {
       toast.error('Gagal memuat data');

@@ -43,12 +43,13 @@ const AyamAnakanModule = () => {
       setBreedingList(breedingResponse.data);
       setIsFromCache(anakanResponse.fromCache && breedingResponse.fromCache);
 
-      if (anakanResponse.fromCache && breedingResponse.fromCache && !forceRefresh) {
-        toast.success(`⚡ Loaded from cache in ${Math.max(anakanResponse.loadTime, breedingResponse.loadTime)}ms`);
-      } else if (forceRefresh) {
-        toast.success('✅ Data berhasil disinkronkan');
-      } else {
-        toast.success('✅ Data berhasil dimuat');
+      // Hanya tampilkan notifikasi saat fetch dari API
+      if (!anakanResponse.fromCache || !breedingResponse.fromCache) {
+        if (forceRefresh) {
+          toast.success('✅ Data berhasil disinkronkan');
+        } else {
+          toast.success('✅ Data berhasil dimuat');
+        }
       }
     } catch (error) {
       toast.error('Gagal memuat data');

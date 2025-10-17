@@ -44,16 +44,15 @@ const AyamIndukModuleV1 = () => {
       setAyamList(response.data);
       setIsFromCache(response.fromCache);
 
-      // Show indicator jika data dari cache
-      if (response.fromCache && !response.stale) {
-        console.log(`✓ Data loaded from cache in ${response.loadTime}ms`);
-        toast.success(`⚡ Loaded ${response.data.length} items in ${response.loadTime}ms (from cache)`);
-      } else if (response.stale) {
+      // Hanya tampilkan notifikasi saat fetch dari API
+      if (response.stale) {
         toast.warning('Menggunakan data offline (koneksi bermasalah)');
-      } else if (forceRefresh) {
-        toast.success(`✅ Synced ${response.data.length} items in ${response.loadTime}ms`);
-      } else {
-        toast.success(`✅ Loaded ${response.data.length} items in ${response.loadTime}ms`);
+      } else if (!response.fromCache) {
+        if (forceRefresh) {
+          toast.success(`✅ Synced ${response.data.length} items in ${response.loadTime}ms`);
+        } else {
+          toast.success(`✅ Loaded ${response.data.length} items in ${response.loadTime}ms`);
+        }
       }
     } catch (error) {
       toast.error('Gagal memuat data ayam indukan');
