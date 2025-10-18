@@ -25,6 +25,12 @@ const BreedingModule = () => {
     jumlah_anakan: 0
   });
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    pejantan_id: 'all',
+    betina_id: 'all'
+  });
+
   useEffect(() => {
     loadData();
   }, []);
@@ -166,16 +172,44 @@ const BreedingModule = () => {
   const pejantanList = ayamIndukList.filter(a => a.jenis_kelamin === 'Jantan');
   const betinaList = ayamIndukList.filter(a => a.jenis_kelamin === 'Betina');
 
+  // Filter breeding list
+  const filteredBreedingList = breedingList.filter(breeding => {
+    // Filter by pejantan
+    if (filters.pejantan_id !== 'all' && breeding.pejantan_id !== filters.pejantan_id) {
+      return false;
+    }
+
+    // Filter by betina
+    if (filters.betina_id !== 'all' && breeding.betina_id !== filters.betina_id) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const resetFilters = () => {
+    setFilters({
+      pejantan_id: 'all',
+      betina_id: 'all'
+    });
+    setCurrentPage(1);
+  };
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = breedingList.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(breedingList.length / itemsPerPage);
+  const currentItems = filteredBreedingList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBreedingList.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   return (
     <div className="space-y-6">
@@ -183,7 +217,7 @@ const BreedingModule = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Data Breeding</h2>
           <p className="text-sm text-gray-500">
-            {breedingList.length} data breeding
+            {filteredBreedingList.length} dari {breedingList.length} data breeding
             {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
           </p>
         </div>
@@ -290,6 +324,65 @@ const BreedingModule = () => {
         </div>
       </div>
 
+      {/* Filter Section */}
+      {breedingList.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Filter Breeding</CardTitle>
+              <Button onClick={resetFilters} variant="outline" size="sm">
+                Reset Filter
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Pejantan Filter */}
+              <div>
+                <Label htmlFor="filter-pejantan" className="text-xs">Pejantan (Jantan)</Label>
+                <Select
+                  value={filters.pejantan_id}
+                  onValueChange={(value) => setFilters({ ...filters, pejantan_id: value })}
+                >
+                  <SelectTrigger id="filter-pejantan" className="h-9">
+                    <SelectValue placeholder="Semua Pejantan" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Pejantan</SelectItem>
+                    {pejantanList.map((ayam) => (
+                      <SelectItem key={ayam.id} value={ayam.id}>
+                        {ayam.kode} - {ayam.ras}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Betina Filter */}
+              <div>
+                <Label htmlFor="filter-betina" className="text-xs">Indukan Betina</Label>
+                <Select
+                  value={filters.betina_id}
+                  onValueChange={(value) => setFilters({ ...filters, betina_id: value })}
+                >
+                  <SelectTrigger id="filter-betina" className="h-9">
+                    <SelectValue placeholder="Semua Indukan" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Indukan</SelectItem>
+                    {betinaList.map((ayam) => (
+                      <SelectItem key={ayam.id} value={ayam.id}>
+                        {ayam.kode} - {ayam.ras}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* List */}
       {loading && breedingList.length === 0 ? (
         <div className="text-center py-12">
@@ -298,6 +391,13 @@ const BreedingModule = () => {
       ) : breedingList.length === 0 ? (
         <Card className="text-center py-12">
           <p className="text-gray-500">Belum ada data breeding</p>
+        </Card>
+      ) : filteredBreedingList.length === 0 ? (
+        <Card className="text-center py-12">
+          <p className="text-gray-500">Tidak ada breeding yang sesuai dengan filter</p>
+          <Button onClick={resetFilters} variant="outline" size="sm" className="mt-4">
+            Reset Filter
+          </Button>
         </Card>
       ) : (
         <>
