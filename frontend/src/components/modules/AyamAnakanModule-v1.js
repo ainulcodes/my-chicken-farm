@@ -80,6 +80,35 @@ const AyamAnakanModule = () => {
     return `#${number} - ${date}`;
   };
 
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return '-';
+    const today = new Date();
+    const birth = new Date(birthDate);
+    const diffTime = Math.abs(today - birth);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 30) {
+      return `${diffDays} hari`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      const days = diffDays % 30;
+      return days > 0 ? `${months} bulan ${days} hari` : `${months} bulan`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const months = Math.floor((diffDays % 365) / 30);
+      if (months > 0) {
+        return `${years} tahun ${months} bulan`;
+      }
+      return `${years} tahun`;
+    }
+  };
+
+  const getAgeFromBreeding = (breedingId) => {
+    const breeding = breedingList.find(b => b.id === breedingId);
+    if (!breeding || !breeding.tanggal_menetas) return '-';
+    return calculateAge(breeding.tanggal_menetas);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -349,6 +378,10 @@ const AyamAnakanModule = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-500">Warna:</span>
                     <span className="font-medium">{anakan.warna}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Umur:</span>
+                    <span className="font-medium text-amber-700">{getAgeFromBreeding(anakan.breeding_id)}</span>
                   </div>
                 </div>
                 <div className="flex space-x-2 mt-4 pt-4 border-t">

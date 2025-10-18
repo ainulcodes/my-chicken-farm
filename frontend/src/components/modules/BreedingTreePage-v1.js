@@ -86,6 +86,29 @@ const BreedingTreePageV1 = () => {
     return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return '-';
+    const today = new Date();
+    const birth = new Date(birthDate);
+    const diffTime = Math.abs(today - birth);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 30) {
+      return `${diffDays} hari`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      const days = diffDays % 30;
+      return days > 0 ? `${months}bln ${days}hr` : `${months} bulan`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const months = Math.floor((diffDays % 365) / 30);
+      if (months > 0) {
+        return `${years}th ${months}bln`;
+      }
+      return `${years} tahun`;
+    }
+  };
+
   // Toggle node expansion
   const toggleNode = (nodeId) => {
     const newExpanded = new Set(expandedNodes);
@@ -139,8 +162,11 @@ const BreedingTreePageV1 = () => {
   };
 
   // Render individual chicken card
-  const ChickenCard = ({ chicken, type }) => {
+  const ChickenCard = ({ chicken, type, breedingDate }) => {
     if (!chicken) return <div className="text-gray-400 italic text-sm">Data not found</div>;
+
+    // For indukan (pejantan/betina), use tanggal_lahir; for anakan, use breedingDate (tanggal_menetas)
+    const birthDate = type === 'anakan' ? breedingDate : chicken.tanggal_lahir;
 
     return (
       <div className={`p-3 rounded-lg border-2 transition-all hover:shadow-md ${
@@ -157,8 +183,15 @@ const BreedingTreePageV1 = () => {
         <div className="text-sm space-y-1">
           <div className="font-semibold text-gray-800">{chicken.ras}</div>
           <div className="text-gray-600 text-xs">Warna: {chicken.warna}</div>
-          {chicken.tanggal_lahir && (
-            <div className="text-gray-500 text-xs">Lahir: {formatDate(chicken.tanggal_lahir)}</div>
+          {birthDate && (
+            <>
+              <div className="text-gray-500 text-xs">
+                {type === 'anakan' ? 'Menetas' : 'Lahir'}: {formatDate(birthDate)}
+              </div>
+              <div className="text-xs font-semibold" style={{ color: type === 'pejantan' ? '#1e40af' : type === 'betina' ? '#be185d' : '#d97706' }}>
+                Umur: {calculateAge(birthDate)}
+              </div>
+            </>
           )}
           {chicken.status && (
             <Badge
@@ -256,7 +289,7 @@ const BreedingTreePageV1 = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {anakan.map((anak) => (
                     <div key={anak.id}>
-                      <ChickenCard chicken={anak} type="anakan" />
+                      <ChickenCard chicken={anak} type="anakan" breedingDate={breeding.tanggal_menetas} />
                     </div>
                   ))}
                 </div>

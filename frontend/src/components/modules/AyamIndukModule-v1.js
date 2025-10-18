@@ -163,6 +163,29 @@ const AyamIndukModuleV1 = () => {
     return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return '-';
+    const today = new Date();
+    const birth = new Date(birthDate);
+    const diffTime = Math.abs(today - birth);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 30) {
+      return `${diffDays} hari`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      const days = diffDays % 30;
+      return days > 0 ? `${months} bulan ${days} hari` : `${months} bulan`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const months = Math.floor((diffDays % 365) / 30);
+      if (months > 0) {
+        return `${years} tahun ${months} bulan`;
+      }
+      return `${years} tahun`;
+    }
+  };
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -312,6 +335,10 @@ const AyamIndukModuleV1 = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-500">Tanggal Lahir:</span>
                     <span className="font-medium">{formatDate(ayam.tanggal_lahir)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Umur:</span>
+                    <span className="font-medium text-emerald-700">{calculateAge(ayam.tanggal_lahir)}</span>
                   </div>
                 </div>
                 <div className="flex space-x-2 mt-4 pt-4 border-t">
