@@ -158,6 +158,11 @@ const AyamIndukModuleV1 = () => {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -306,13 +311,7 @@ const AyamIndukModuleV1 = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Tanggal Lahir:</span>
-                    <span className="font-medium">
-                      {ayam.tanggal_lahir ? new Date(ayam.tanggal_lahir).toLocaleDateString('id-ID', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }) : '-'}
-                    </span>
+                    <span className="font-medium">{formatDate(ayam.tanggal_lahir)}</span>
                   </div>
                 </div>
                 <div className="flex space-x-2 mt-4 pt-4 border-t">

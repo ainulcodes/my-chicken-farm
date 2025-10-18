@@ -60,6 +60,17 @@ const BreedingModule = () => {
     return ayam ? `${ayam.kode} (${ayam.ras})` : '-';
   };
 
+  const formatBreedingNumber = (breeding, index) => {
+    const number = String(index + 1).padStart(3, '0');
+    const date = breeding.tanggal_menetas ? new Date(breeding.tanggal_menetas).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+    return `Breeding #${number} - ${date}`;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -292,7 +303,7 @@ const BreedingModule = () => {
       ) : (
         <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" data-testid="breeding-list">
-          {currentItems.map((breeding) => (
+          {currentItems.map((breeding, index) => (
             <Card key={breeding.id} className="hover:shadow-lg transition-shadow" data-testid={`breeding-item-${breeding.id}`}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
@@ -300,7 +311,7 @@ const BreedingModule = () => {
                     <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                     </svg>
-                    Breeding #{breeding.id?.substring(0, 8)}
+                    {formatBreedingNumber(breeding, indexOfFirstItem + index)}
                   </span>
                   <span className="text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-700">
                     {breeding.jumlah_anakan} Anakan
@@ -320,11 +331,11 @@ const BreedingModule = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <p className="text-xs text-gray-500">Tanggal Kawin</p>
-                      <p className="font-medium">{breeding.tanggal_kawin}</p>
+                      <p className="font-medium">{formatDate(breeding.tanggal_kawin)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Tanggal Menetas</p>
-                      <p className="font-medium">{breeding.tanggal_menetas}</p>
+                      <p className="font-medium">{formatDate(breeding.tanggal_menetas)}</p>
                     </div>
                   </div>
                 </div>

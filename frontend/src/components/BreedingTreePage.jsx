@@ -60,6 +60,18 @@ const BreedingTreePage = () => {
     return anakanData.filter(a => a.breeding_id === breedingId);
   };
 
+  // Format breeding number
+  const formatBreedingNumber = (breeding, index) => {
+    const number = String(index + 1).padStart(3, '0');
+    const date = breeding.tanggal_menetas ? new Date(breeding.tanggal_menetas).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+    return `Breeding #${number} - ${date}`;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   // Toggle node expansion
   const toggleNode = (nodeId) => {
     const newExpanded = new Set(expandedNodes);
@@ -131,7 +143,7 @@ const BreedingTreePage = () => {
   };
 
   // Render breeding node
-  const BreedingNode = ({ breeding }) => {
+  const BreedingNode = ({ breeding, index }) => {
     const pejantan = getIndukanById(breeding.pejantan_id);
     const betina = getIndukanById(breeding.betina_id);
     const anakan = getAnakanByBreedingId(breeding.id);
@@ -143,7 +155,7 @@ const BreedingTreePage = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Heart className="w-5 h-5 text-red-500" />
-              Breeding #{breeding.id}
+              {formatBreedingNumber(breeding, index)}
             </CardTitle>
             <Button
               variant="ghost"
@@ -156,11 +168,11 @@ const BreedingTreePage = () => {
           <div className="flex items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              <span>Kawin: {breeding.tanggal_kawin}</span>
+              <span>Kawin: {formatDate(breeding.tanggal_kawin)}</span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              <span>Menetas: {breeding.tanggal_menetas}</span>
+              <span>Menetas: {formatDate(breeding.tanggal_menetas)}</span>
             </div>
             <div className="flex items-center gap-1">
               <Baby className="w-4 h-4" />
@@ -318,8 +330,8 @@ const BreedingTreePage = () => {
             </CardContent>
           </Card>
         ) : (
-          filteredBreeding.map(breeding => (
-            <BreedingNode key={breeding.id} breeding={breeding} />
+          filteredBreeding.map((breeding, index) => (
+            <BreedingNode key={breeding.id} breeding={breeding} index={index} />
           ))
         )}
       </div>

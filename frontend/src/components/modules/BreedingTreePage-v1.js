@@ -74,6 +74,18 @@ const BreedingTreePageV1 = () => {
     return anakanData.filter(a => a.breeding_id === breedingId);
   };
 
+  // Format breeding number
+  const formatBreedingNumber = (breeding, index) => {
+    const number = String(index + 1).padStart(3, '0');
+    const date = breeding.tanggal_menetas ? new Date(breeding.tanggal_menetas).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+    return `Breeding #${number} - ${date}`;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   // Toggle node expansion
   const toggleNode = (nodeId) => {
     const newExpanded = new Set(expandedNodes);
@@ -146,7 +158,7 @@ const BreedingTreePageV1 = () => {
           <div className="font-semibold text-gray-800">{chicken.ras}</div>
           <div className="text-gray-600 text-xs">Warna: {chicken.warna}</div>
           {chicken.tanggal_lahir && (
-            <div className="text-gray-500 text-xs">Lahir: {chicken.tanggal_lahir}</div>
+            <div className="text-gray-500 text-xs">Lahir: {formatDate(chicken.tanggal_lahir)}</div>
           )}
           {chicken.status && (
             <Badge
@@ -162,7 +174,7 @@ const BreedingTreePageV1 = () => {
   };
 
   // Render breeding node
-  const BreedingNode = ({ breeding }) => {
+  const BreedingNode = ({ breeding, index }) => {
     const pejantan = getIndukanById(breeding.pejantan_id);
     const betina = getIndukanById(breeding.betina_id);
     const anakan = getAnakanByBreedingId(breeding.id);
@@ -174,7 +186,7 @@ const BreedingTreePageV1 = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <Heart className="w-5 h-5 text-red-500" />
-              <span className="font-mono">Breeding #{breeding.id}</span>
+              <span className="font-mono">{formatBreedingNumber(breeding, index)}</span>
             </CardTitle>
             <Button
               variant="ghost"
@@ -188,11 +200,11 @@ const BreedingTreePageV1 = () => {
           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mt-2">
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              <span>Kawin: {breeding.tanggal_kawin}</span>
+              <span>Kawin: {formatDate(breeding.tanggal_kawin)}</span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              <span>Menetas: {breeding.tanggal_menetas}</span>
+              <span>Menetas: {formatDate(breeding.tanggal_menetas)}</span>
             </div>
             <div className="flex items-center gap-1">
               <Baby className="w-3 h-3" />
@@ -364,8 +376,8 @@ const BreedingTreePageV1 = () => {
           </Card>
         ) : (
           <>
-            {currentItems.map(breeding => (
-              <BreedingNode key={breeding.id} breeding={breeding} />
+            {currentItems.map((breeding, index) => (
+              <BreedingNode key={breeding.id} breeding={breeding} index={indexOfFirstItem + index} />
             ))}
 
             {/* Pagination */}

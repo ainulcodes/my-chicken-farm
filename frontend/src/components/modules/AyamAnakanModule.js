@@ -55,7 +55,12 @@ const AyamAnakanModule = () => {
 
   const getBreedingInfo = (breedingId) => {
     const breeding = breedingList.find(b => b.id === breedingId);
-    return breeding ? `Breeding #${breeding.id?.substring(0, 8)}` : '-';
+    if (!breeding) return '-';
+
+    const index = breedingList.findIndex(b => b.id === breedingId);
+    const number = String(index + 1).padStart(3, '0');
+    const date = breeding.tanggal_menetas ? new Date(breeding.tanggal_menetas).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+    return `#${number} - ${date}`;
   };
 
   const handleSubmit = async (e) => {
@@ -135,9 +140,9 @@ const AyamAnakanModule = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Semua Breeding</SelectItem>
-              {breedingList.map((breeding) => (
+              {breedingList.map((breeding, index) => (
                 <SelectItem key={breeding.id} value={breeding.id}>
-                  #{breeding.id?.substring(0, 8)}
+                  {getBreedingInfo(breeding.id)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -164,11 +169,15 @@ const AyamAnakanModule = () => {
                       <SelectValue placeholder="Pilih breeding" />
                     </SelectTrigger>
                     <SelectContent>
-                      {breedingList.map((breeding) => (
-                        <SelectItem key={breeding.id} value={breeding.id}>
-                          Breeding #{breeding.id?.substring(0, 8)} - {breeding.tanggal_menetas}
-                        </SelectItem>
-                      ))}
+                      {breedingList.map((breeding, index) => {
+                        const number = String(index + 1).padStart(3, '0');
+                        const date = breeding.tanggal_menetas ? new Date(breeding.tanggal_menetas).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+                        return (
+                          <SelectItem key={breeding.id} value={breeding.id}>
+                            Breeding #{number} - {date}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
