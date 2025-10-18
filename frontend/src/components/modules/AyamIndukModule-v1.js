@@ -28,6 +28,16 @@ const AyamIndukModuleV1 = () => {
     tanggal_lahir: ''
   });
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    ras: 'all',
+    warna: 'all',
+    jenis_kelamin: 'all',
+    ageMin: '',
+    ageMax: '',
+    ageUnit: 'months' // 'months' or 'years'
+  });
+
   useEffect(() => {
     loadAyamInduk();
   }, []);
@@ -186,16 +196,99 @@ const AyamIndukModuleV1 = () => {
     }
   };
 
+  // Get age in days for filtering
+  const getAgeInDays = (birthDate) => {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    const diffTime = Math.abs(today - birth);
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Get unique values for filters
+  const getUniqueRas = () => {
+    const uniqueRas = [...new Set(ayamList.map(a => a.ras))].filter(Boolean).sort();
+    return uniqueRas;
+  };
+
+  const getUniqueWarna = () => {
+    const uniqueWarna = [...new Set(ayamList.map(a => a.warna))].filter(Boolean).sort();
+    return uniqueWarna;
+  };
+
+  // Filter ayam list
+  const filteredAyamList = ayamList.filter(ayam => {
+    // Filter by ras
+    if (filters.ras !== 'all' && ayam.ras !== filters.ras) {
+      return false;
+    }
+
+    // Filter by warna
+    if (filters.warna !== 'all' && ayam.warna !== filters.warna) {
+      return false;
+    }
+
+    // Filter by jenis kelamin
+    if (filters.jenis_kelamin !== 'all' && ayam.jenis_kelamin !== filters.jenis_kelamin) {
+      return false;
+    }
+
+    // Filter by age
+    const ageInDays = getAgeInDays(ayam.tanggal_lahir);
+    if (ageInDays !== null) {
+      let ageMinInDays = null;
+      let ageMaxInDays = null;
+
+      // Convert filter values to days based on unit
+      if (filters.ageMin) {
+        ageMinInDays = filters.ageUnit === 'years'
+          ? parseInt(filters.ageMin) * 365
+          : parseInt(filters.ageMin) * 30;
+      }
+      if (filters.ageMax) {
+        ageMaxInDays = filters.ageUnit === 'years'
+          ? parseInt(filters.ageMax) * 365
+          : parseInt(filters.ageMax) * 30;
+      }
+
+      if (ageMinInDays && ageInDays < ageMinInDays) {
+        return false;
+      }
+      if (ageMaxInDays && ageInDays > ageMaxInDays) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const resetFilters = () => {
+    setFilters({
+      ras: 'all',
+      warna: 'all',
+      jenis_kelamin: 'all',
+      ageMin: '',
+      ageMax: '',
+      ageUnit: 'months'
+    });
+    setCurrentPage(1);
+  };
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = ayamList.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(ayamList.length / itemsPerPage);
+  const currentItems = filteredAyamList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredAyamList.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   return (
     <div className="space-y-6">
@@ -203,7 +296,7 @@ const AyamIndukModuleV1 = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Ayam Indukan</h2>
           <p className="text-sm text-gray-500">
-            {ayamList.length} ayam indukan
+            {filteredAyamList.length} dari {ayamList.length} ayam indukan
             {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
           </p>
         </div>
@@ -300,6 +393,117 @@ const AyamIndukModuleV1 = () => {
         </div>
       </div>
 
+      {/* Filter Section */}
+      {ayamList.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Filter Ayam Indukan</CardTitle>
+              <Button onClick={resetFilters} variant="outline" size="sm">
+                Reset Filter
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Jenis Kelamin Filter */}
+              <div>
+                <Label htmlFor="filter-gender" className="text-xs">Jenis Kelamin</Label>
+                <Select
+                  value={filters.jenis_kelamin}
+                  onValueChange={(value) => setFilters({ ...filters, jenis_kelamin: value })}
+                >
+                  <SelectTrigger id="filter-gender" className="h-9">
+                    <SelectValue placeholder="Semua" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="Jantan">Jantan</SelectItem>
+                    <SelectItem value="Betina">Betina</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Ras Filter */}
+              <div>
+                <Label htmlFor="filter-ras" className="text-xs">Ras</Label>
+                <Select
+                  value={filters.ras}
+                  onValueChange={(value) => setFilters({ ...filters, ras: value })}
+                >
+                  <SelectTrigger id="filter-ras" className="h-9">
+                    <SelectValue placeholder="Semua" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Ras</SelectItem>
+                    {getUniqueRas().map((ras) => (
+                      <SelectItem key={ras} value={ras}>{ras}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Warna Filter */}
+              <div>
+                <Label htmlFor="filter-warna" className="text-xs">Warna</Label>
+                <Select
+                  value={filters.warna}
+                  onValueChange={(value) => setFilters({ ...filters, warna: value })}
+                >
+                  <SelectTrigger id="filter-warna" className="h-9">
+                    <SelectValue placeholder="Semua" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Warna</SelectItem>
+                    {getUniqueWarna().map((warna) => (
+                      <SelectItem key={warna} value={warna}>{warna}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Age Range Filter */}
+              <div>
+                <Label className="text-xs">Umur</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="number"
+                      placeholder="Min"
+                      value={filters.ageMin}
+                      onChange={(e) => setFilters({ ...filters, ageMin: e.target.value })}
+                      className="h-9 flex-1"
+                      min="0"
+                    />
+                    <span className="text-xs text-gray-500">-</span>
+                    <Input
+                      type="number"
+                      placeholder="Max"
+                      value={filters.ageMax}
+                      onChange={(e) => setFilters({ ...filters, ageMax: e.target.value })}
+                      className="h-9 flex-1"
+                      min="0"
+                    />
+                  </div>
+                  <Select
+                    value={filters.ageUnit}
+                    onValueChange={(value) => setFilters({ ...filters, ageUnit: value })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="months">Bulan</SelectItem>
+                      <SelectItem value="years">Tahun</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* List */}
       {loading && ayamList.length === 0 ? (
         <div className="text-center py-12">
@@ -308,6 +512,13 @@ const AyamIndukModuleV1 = () => {
       ) : ayamList.length === 0 ? (
         <Card className="text-center py-12">
           <p className="text-gray-500">Belum ada data ayam indukan</p>
+        </Card>
+      ) : filteredAyamList.length === 0 ? (
+        <Card className="text-center py-12">
+          <p className="text-gray-500">Tidak ada ayam indukan yang sesuai dengan filter</p>
+          <Button onClick={resetFilters} variant="outline" size="sm" className="mt-4">
+            Reset Filter
+          </Button>
         </Card>
       ) : (
         <>
