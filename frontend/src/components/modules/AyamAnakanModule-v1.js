@@ -197,7 +197,7 @@ const AyamAnakanModule = () => {
             <SelectTrigger className="w-full sm:w-[200px]" data-testid="filter-breeding-select">
               <SelectValue placeholder="Filter Breeding" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px]">
               <SelectItem value="all">Semua Breeding</SelectItem>
               {breedingList.map((breeding, index) => (
                 <SelectItem key={breeding.id} value={breeding.id}>
@@ -227,7 +227,7 @@ const AyamAnakanModule = () => {
                     <SelectTrigger data-testid="anakan-breeding-select">
                       <SelectValue placeholder="Pilih breeding" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[300px]">
                       {breedingList.map((breeding, index) => {
                         const number = String(index + 1).padStart(3, '0');
                         const date = breeding.tanggal_menetas ? new Date(breeding.tanggal_menetas).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';

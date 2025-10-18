@@ -138,7 +138,7 @@ const BreedingModule = () => {
     setFormData({
       pejantan_id: breeding.pejantan_id,
       betina_id: breeding.betina_id,
-      tanggal_kawin: breeding.tanggal_kawin,
+      tanggal_kawin: breeding.tanggal_kawin || '',
       tanggal_menetas: breeding.tanggal_menetas,
       jumlah_anakan: breeding.jumlah_anakan
     });
@@ -218,7 +218,7 @@ const BreedingModule = () => {
                   <SelectTrigger data-testid="breeding-pejantan-select">
                     <SelectValue placeholder="Pilih pejantan" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px]">
                     {pejantanList.map((ayam) => (
                       <SelectItem key={ayam.id} value={ayam.id}>
                         {ayam.kode} - {ayam.ras}
@@ -237,7 +237,7 @@ const BreedingModule = () => {
                   <SelectTrigger data-testid="breeding-betina-select">
                     <SelectValue placeholder="Pilih indukan betina" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px]">
                     {betinaList.map((ayam) => (
                       <SelectItem key={ayam.id} value={ayam.id}>
                         {ayam.kode} - {ayam.ras}
@@ -247,13 +247,12 @@ const BreedingModule = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="tanggal_kawin">Tanggal Kawin</Label>
+                <Label htmlFor="tanggal_kawin">Tanggal Kawin (Opsional)</Label>
                 <Input
                   id="tanggal_kawin"
                   type="date"
                   value={formData.tanggal_kawin}
                   onChange={(e) => setFormData({ ...formData, tanggal_kawin: e.target.value })}
-                  required
                   data-testid="breeding-tanggal-kawin-input"
                 />
               </div>
