@@ -1,6 +1,6 @@
 // ============================================
 // GOOGLE APPS SCRIPT - BACKEND API
-// Website Breeding Ayam Aduan
+// Website Breeding Ayam Super
 // ============================================
 
 // 📝 INSTRUKSI SETUP:

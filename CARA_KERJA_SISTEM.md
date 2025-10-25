@@ -1,4 +1,4 @@
-# \ud83e\udde0 Cara Kerja Sistem - Breeding Ayam Aduan
+# \ud83e\udde0 Cara Kerja Sistem - Breeding Ayam Super
 
 ## \ud83c\udfdb️ Arsitektur Sistem
 
@@ -298,4 +298,4 @@ Actions available:
 
 ---
 
-Sistem ini dirancang sederhana namun powerful untuk kebutuhan breeding ayam aduan skala kecil hingga menengah! 🐔🚀
+Sistem ini dirancang sederhana namun powerful untuk kebutuhan breeding ayam Super skala kecil hingga menengah! 🐔🚀

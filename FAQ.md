@@ -1,4 +1,4 @@
-# ❓ FAQ - Breeding Ayam Aduan
+# ❓ FAQ - Breeding Ayam Super
 
 ## Umum
 
@@ -311,4 +311,4 @@ Jika masih ada pertanyaan yang tidak terjawab di FAQ ini, silakan:
 2. Cek panduan setup di `/app/PANDUAN_CEPAT.md`
 3. Pelajari cara kerja sistem di `/app/CARA_KERJA_SISTEM.md`
 
-Selamat menggunakan sistem Breeding Ayam Aduan! 🐔✨
+Selamat menggunakan sistem Breeding Ayam Super! 🐔✨

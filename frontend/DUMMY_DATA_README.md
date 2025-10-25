@@ -1,6 +1,6 @@
 # 🐓 Dummy Data Generator - Quick Guide
 
-Generate 300 dummy data ayam aduan untuk testing performa aplikasi.
+Generate 300 dummy data ayam Super untuk testing performa aplikasi.
 
 ## 🚀 Cara Penggunaan
 
@@ -95,7 +95,7 @@ node generate-dummy-node.js
 
 ## 📝 Data Realistis
 
-### Ras Ayam Aduan
+### Ras Ayam Super
 Bangkok, Saigon, Burma, Shamo, Asil, Birma, Pakhoy, Pelung, Ciparage, Jepang, Filipino, Lemon, Brazilian, Magon, Siam
 
 ### Warna

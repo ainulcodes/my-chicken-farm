@@ -1,4 +1,4 @@
-# 📘 Panduan Setup - Website Breeding Ayam Aduan
+# 📘 Panduan Setup - Website Breeding Ayam Super
 
 ## 🎯 Langkah-langkah Setup
 

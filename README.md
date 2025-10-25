@@ -1,6 +1,6 @@
-# 🐓 Website Breeding Ayam Aduan
+# 🐓 Website Breeding Ayam Super
 
-Sistem manajemen breeding ayam aduan profesional dengan Google Sheets sebagai database.
+Sistem manajemen breeding ayam Super profesional dengan Google Sheets sebagai database.
 
 ## ✨ Fitur Utama
 

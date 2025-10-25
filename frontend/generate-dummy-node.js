@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * 🐓 Dummy Data Generator - Ayam Aduan (Node.js)
+ * 🐓 Dummy Data Generator - Ayam Super (Node.js)
  * Generates 100 indukan, 50 breeding, 150 anakan
  *
  * Usage:
@@ -160,7 +160,7 @@ async function insertDataBatch(action, dataArray, batchSize = 5) {
 // Main generation function
 async function generateAllDummyData(isTest = false) {
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'blue');
-    log('🐓 DUMMY DATA GENERATOR - AYAM ADUAN (Node.js)', 'blue');
+    log('🐓 DUMMY DATA GENERATOR - AYAM Super (Node.js)', 'blue');
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'blue');
     console.log();
     log(`🔗 API URL: ${API_URL.substring(0, 60)}...`, 'yellow');

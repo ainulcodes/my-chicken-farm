@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 🐓 Dummy Data Generator - Ayam Aduan (Using cURL)
+# 🐓 Dummy Data Generator - Ayam Super (Using cURL)
 # Generates 100 indukan, 50 breeding, 150 anakan
 
 API_URL="https://script.google.com/macros/s/AKfycbzwt0uW7oqbw6EzfOa5g5w9D_q3UaVzYw-N7Qpl4cj_CwxZHf6JSpMmgO0Gq3wfgc65/exec"
@@ -37,7 +37,7 @@ url_encode() {
 }
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}🐓 DUMMY DATA GENERATOR - AYAM ADUAN (cURL)${NC}"
+echo -e "${BLUE}🐓 DUMMY DATA GENERATOR - AYAM Super (cURL)${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 

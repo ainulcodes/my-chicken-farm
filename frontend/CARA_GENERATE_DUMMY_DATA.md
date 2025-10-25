@@ -1,4 +1,4 @@
-# 🐓 Cara Generate Dummy Data Ayam Aduan
+# 🐓 Cara Generate Dummy Data Ayam Super
 
 Script ini akan membuat data dummy untuk menguji performa aplikasi dengan dataset yang lebih besar.
 
@@ -71,7 +71,7 @@ Script ini akan membuat data dummy untuk menguji performa aplikasi dengan datase
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🐓 DUMMY DATA GENERATOR - AYAM ADUAN (Node.js)
+🐓 DUMMY DATA GENERATOR - AYAM Super (Node.js)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔗 API URL: https://script.google.com/macros/s/AKfycbz...
@@ -140,7 +140,7 @@ Lebih cepat (~30-60 detik) untuk testing cepat.
 - Progress indicator untuk setiap batch
 
 ### Data Realistis
-- **Ras Ayam Aduan**: Bangkok, Saigon, Burma, Shamo, Asil, Birma, Pakhoy, Pelung, Ciparage, Jepang, Filipino, Lemon, Brazilian, Magon, Siam
+- **Ras Ayam Super**: Bangkok, Saigon, Burma, Shamo, Asil, Birma, Pakhoy, Pelung, Ciparage, Jepang, Filipino, Lemon, Brazilian, Magon, Siam
 
 - **Warna**: Hitam, Merah, Putih, Kuning, Biru, Hijau, Abu-abu, Coklat, Emas, Perak, Hitam Putih, Merah Hitam, Kuning Hitam, Belang Tiga, Wido, Laso, Kembang, Blorok
 

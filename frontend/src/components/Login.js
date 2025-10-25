@@ -76,7 +76,7 @@ const Login = () => {
           {/* Title */}
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-              Breeding Ayam Aduan
+              Breeding Ayam Super
             </h1>
             <p className="text-gray-600 text-sm">
               Sistem manajemen breeding ayam profesional

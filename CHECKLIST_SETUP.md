@@ -1,4 +1,4 @@
-# ✅ Checklist Setup - Breeding Ayam Aduan
+# ✅ Checklist Setup - Breeding Ayam Super
 
 Gunakan checklist ini untuk memastikan setup Anda lengkap dan benar!
 

@@ -1,4 +1,4 @@
-# 📊 Contoh Data - Breeding Ayam Aduan
+# 📊 Contoh Data - Breeding Ayam Super
 
 Dokumen ini berisi contoh data yang bisa Anda gunakan untuk testing atau sebagai referensi.
 
