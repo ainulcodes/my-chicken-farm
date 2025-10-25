@@ -25,7 +25,8 @@ const AyamIndukModuleV1 = () => {
     jenis_kelamin: '',
     ras: '',
     warna: '',
-    tanggal_lahir: ''
+    tanggal_lahir: '',
+    status: 'Sehat'
   });
 
   // Filter states
@@ -33,6 +34,7 @@ const AyamIndukModuleV1 = () => {
     ras: 'all',
     warna: 'all',
     jenis_kelamin: 'all',
+    status: 'all',
     ageMin: '',
     ageMax: '',
     ageUnit: 'months' // 'months' or 'years'
@@ -145,7 +147,8 @@ const AyamIndukModuleV1 = () => {
       jenis_kelamin: ayam.jenis_kelamin,
       ras: ayam.ras,
       warna: ayam.warna,
-      tanggal_lahir: tanggalLahir
+      tanggal_lahir: tanggalLahir,
+      status: ayam.status || 'Sehat'
     });
     setIsDialogOpen(true);
   };
@@ -156,7 +159,8 @@ const AyamIndukModuleV1 = () => {
       jenis_kelamin: '',
       ras: '',
       warna: '',
-      tanggal_lahir: ''
+      tanggal_lahir: '',
+      status: 'Sehat'
     });
     setEditingAyam(null);
   };
@@ -233,6 +237,11 @@ const AyamIndukModuleV1 = () => {
       return false;
     }
 
+    // Filter by status
+    if (filters.status !== 'all' && ayam.status !== filters.status) {
+      return false;
+    }
+
     // Filter by age
     const ageInDays = getAgeInDays(ayam.tanggal_lahir);
     if (ageInDays !== null) {
@@ -267,6 +276,7 @@ const AyamIndukModuleV1 = () => {
       ras: 'all',
       warna: 'all',
       jenis_kelamin: 'all',
+      status: 'all',
       ageMin: '',
       ageMax: '',
       ageUnit: 'months'
@@ -381,6 +391,23 @@ const AyamIndukModuleV1 = () => {
                   data-testid="indukan-tanggal-input"
                 />
               </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger data-testid="indukan-status-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Sehat">Sehat</SelectItem>
+                    <SelectItem value="Sakit">Sakit</SelectItem>
+                    <SelectItem value="Dijual">Dijual</SelectItem>
+                    <SelectItem value="Mati">Mati</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>Batal</Button>
                 <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700" data-testid="indukan-submit-button">
@@ -405,7 +432,7 @@ const AyamIndukModuleV1 = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Jenis Kelamin Filter */}
               <div>
                 <Label htmlFor="filter-gender" className="text-xs">Jenis Kelamin</Label>
@@ -462,8 +489,28 @@ const AyamIndukModuleV1 = () => {
                 </Select>
               </div>
 
-              {/* Age Range Filter */}
+              {/* Status Filter */}
               <div>
+                <Label htmlFor="filter-status" className="text-xs">Status</Label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) => setFilters({ ...filters, status: value })}
+                >
+                  <SelectTrigger id="filter-status" className="h-9">
+                    <SelectValue placeholder="Semua Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="Sehat">Sehat</SelectItem>
+                    <SelectItem value="Sakit">Sakit</SelectItem>
+                    <SelectItem value="Dijual">Dijual</SelectItem>
+                    <SelectItem value="Mati">Mati</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Age Range Filter */}
+              <div className="md:col-span-2 lg:col-span-1">
                 <Label className="text-xs">Umur</Label>
                 <div className="space-y-2">
                   <div className="flex gap-2 items-center">
@@ -528,13 +575,24 @@ const AyamIndukModuleV1 = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
                   <span>{ayam.kode}</span>
-                  <span className={`text-sm px-3 py-1 rounded-full ${ayam.jenis_kelamin === 'Jantan' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                    {ayam.jenis_kelamin}
+                  <span className={`text-sm px-3 py-1 rounded-full ${
+                    ayam.status === 'Sehat' ? 'bg-green-100 text-green-700' :
+                    ayam.status === 'Sakit' ? 'bg-yellow-100 text-yellow-700' :
+                    ayam.status === 'Dijual' ? 'bg-blue-100 text-blue-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {ayam.status || 'Sehat'}
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Jenis Kelamin:</span>
+                    <span className={`font-medium ${ayam.jenis_kelamin === 'Jantan' ? 'text-blue-600' : 'text-pink-600'}`}>
+                      {ayam.jenis_kelamin}
+                    </span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Ras:</span>
                     <span className="font-medium">{ayam.ras}</span>
