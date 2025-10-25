@@ -39,6 +39,9 @@ jobs:
         run: yarn build
         env:
           CI: false
+          REACT_APP_SHEETS_API_URL: ${{ secrets.REACT_APP_SHEETS_API_URL }}
+          REACT_APP_ENABLE_VISUAL_EDITS: true
+          ENABLE_HEALTH_CHECK: false
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
