@@ -7,7 +7,7 @@ import { Toaster } from './components/ui/sonner';
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
+      <BrowserRouter basename="/my-chicken-farm">
         <Routes>
           <Route path="/" element={<Dashboard />} />
         </Routes>
