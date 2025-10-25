@@ -15,9 +15,18 @@ const AyamAnakanModule = () => {
   const [editingAnakan, setEditingAnakan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
-  const [filterBreeding, setFilterBreeding] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(9); // 3 kolom x 3 baris
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    breeding_id: 'all',
+    jenis_kelamin: 'all',
+    warna: 'all',
+    status: 'all',
+    ageMin: '',
+    ageMax: ''
+  });
   const [formData, setFormData] = useState({
     breeding_id: '',
     kode: '',
@@ -29,10 +38,6 @@ const AyamAnakanModule = () => {
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    loadAnakan();
-  }, [filterBreeding]);
 
   const loadData = async (forceRefresh = false) => {
     setLoading(true);
@@ -57,16 +62,6 @@ const AyamAnakanModule = () => {
       toast.error('Gagal memuat data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadAnakan = async () => {
-    try {
-      const breedingId = (filterBreeding === 'all' || !filterBreeding) ? null : filterBreeding;
-      const response = await cachedAPI.getAyamAnakan(breedingId, false);
-      setAnakanList(response.data);
-    } catch (error) {
-      toast.error('Gagal memuat data anakan');
     }
   };
 
@@ -109,6 +104,22 @@ const AyamAnakanModule = () => {
     return calculateAge(breeding.tanggal_menetas);
   };
 
+  // Get age in days for filtering
+  const getAgeInDays = (breedingId) => {
+    const breeding = breedingList.find(b => b.id === breedingId);
+    if (!breeding || !breeding.tanggal_menetas) return null;
+    const today = new Date();
+    const birth = new Date(breeding.tanggal_menetas);
+    const diffTime = Math.abs(today - birth);
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Get unique values for filters
+  const getUniqueWarna = () => {
+    const uniqueWarna = [...new Set(anakanList.map(a => a.warna))].filter(Boolean).sort();
+    return uniqueWarna;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -134,7 +145,7 @@ const AyamAnakanModule = () => {
       resetForm();
     } catch (error) {
       toast.error('Gagal menyimpan data');
-      loadAnakan(); // Refetch on error
+      loadData(); // Refetch on error
     } finally {
       setLoading(false);
     }
@@ -151,7 +162,7 @@ const AyamAnakanModule = () => {
         }
       } catch (error) {
         toast.error('Gagal menghapus data');
-        loadAnakan(); // Refetch on error
+        loadData(); // Refetch on error
       }
     }
   };
@@ -186,21 +197,69 @@ const AyamAnakanModule = () => {
     }
   };
 
+  // Filter anakan list
+  const filteredAnakanList = anakanList.filter(anakan => {
+    // Filter by breeding
+    if (filters.breeding_id !== 'all' && anakan.breeding_id !== filters.breeding_id) {
+      return false;
+    }
+
+    // Filter by jenis kelamin
+    if (filters.jenis_kelamin !== 'all' && anakan.jenis_kelamin !== filters.jenis_kelamin) {
+      return false;
+    }
+
+    // Filter by warna
+    if (filters.warna !== 'all' && anakan.warna !== filters.warna) {
+      return false;
+    }
+
+    // Filter by status
+    if (filters.status !== 'all' && anakan.status !== filters.status) {
+      return false;
+    }
+
+    // Filter by age (in days)
+    const ageInDays = getAgeInDays(anakan.breeding_id);
+    if (ageInDays !== null) {
+      if (filters.ageMin && ageInDays < parseInt(filters.ageMin)) {
+        return false;
+      }
+      if (filters.ageMax && ageInDays > parseInt(filters.ageMax)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const resetFilters = () => {
+    setFilters({
+      breeding_id: 'all',
+      jenis_kelamin: 'all',
+      warna: 'all',
+      status: 'all',
+      ageMin: '',
+      ageMax: ''
+    });
+    setCurrentPage(1);
+  };
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = anakanList.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(anakanList.length / itemsPerPage);
+  const currentItems = filteredAnakanList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredAnakanList.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Reset ke halaman 1 saat filter berubah
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterBreeding]);
+  }, [filters]);
 
   return (
     <div className="space-y-6">
@@ -208,7 +267,7 @@ const AyamAnakanModule = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Ayam Anakan</h2>
           <p className="text-sm text-gray-500">
-            {anakanList.length} ayam anakan
+            {filteredAnakanList.length} dari {anakanList.length} ayam anakan
             {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
           </p>
         </div>
@@ -222,19 +281,6 @@ const AyamAnakanModule = () => {
           >
             {loading ? 'Syncing...' : '🔄 Refresh'}
           </Button>
-          <Select value={filterBreeding} onValueChange={setFilterBreeding}>
-            <SelectTrigger className="w-full sm:w-[200px]" data-testid="filter-breeding-select">
-              <SelectValue placeholder="Filter Breeding" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="all">Semua Breeding</SelectItem>
-              {breedingList.map((breeding, index) => (
-                <SelectItem key={breeding.id} value={breeding.id}>
-                  {getBreedingInfo(breeding.id)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl shadow-md" data-testid="add-anakan-button">
@@ -336,6 +382,125 @@ const AyamAnakanModule = () => {
         </div>
       </div>
 
+      {/* Filter Section */}
+      {anakanList.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Filter Ayam Anakan</CardTitle>
+              <Button onClick={resetFilters} variant="outline" size="sm">
+                Reset Filter
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Breeding Filter */}
+              <div>
+                <Label htmlFor="filter-breeding" className="text-xs">Breeding</Label>
+                <Select
+                  value={filters.breeding_id}
+                  onValueChange={(value) => setFilters({ ...filters, breeding_id: value })}
+                >
+                  <SelectTrigger id="filter-breeding" className="h-9">
+                    <SelectValue placeholder="Semua Breeding" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Breeding</SelectItem>
+                    {breedingList.map((breeding) => (
+                      <SelectItem key={breeding.id} value={breeding.id}>
+                        {getBreedingInfo(breeding.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Jenis Kelamin Filter */}
+              <div>
+                <Label htmlFor="filter-gender" className="text-xs">Jenis Kelamin</Label>
+                <Select
+                  value={filters.jenis_kelamin}
+                  onValueChange={(value) => setFilters({ ...filters, jenis_kelamin: value })}
+                >
+                  <SelectTrigger id="filter-gender" className="h-9">
+                    <SelectValue placeholder="Semua" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="Jantan">Jantan</SelectItem>
+                    <SelectItem value="Betina">Betina</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Warna Filter */}
+              <div>
+                <Label htmlFor="filter-warna" className="text-xs">Warna</Label>
+                <Select
+                  value={filters.warna}
+                  onValueChange={(value) => setFilters({ ...filters, warna: value })}
+                >
+                  <SelectTrigger id="filter-warna" className="h-9">
+                    <SelectValue placeholder="Semua" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Warna</SelectItem>
+                    {getUniqueWarna().map((warna) => (
+                      <SelectItem key={warna} value={warna}>{warna}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <Label htmlFor="filter-status" className="text-xs">Status</Label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) => setFilters({ ...filters, status: value })}
+                >
+                  <SelectTrigger id="filter-status" className="h-9">
+                    <SelectValue placeholder="Semua Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="Sehat">Sehat</SelectItem>
+                    <SelectItem value="Sakit">Sakit</SelectItem>
+                    <SelectItem value="Dijual">Dijual</SelectItem>
+                    <SelectItem value="Mati">Mati</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Age Range Filter (in days) */}
+              <div className="md:col-span-2 lg:col-span-1">
+                <Label className="text-xs">Umur (Hari)</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.ageMin}
+                    onChange={(e) => setFilters({ ...filters, ageMin: e.target.value })}
+                    className="h-9 flex-1"
+                    min="0"
+                  />
+                  <span className="text-xs text-gray-500">-</span>
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.ageMax}
+                    onChange={(e) => setFilters({ ...filters, ageMax: e.target.value })}
+                    className="h-9 flex-1"
+                    min="0"
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* List */}
       {loading && anakanList.length === 0 ? (
         <div className="text-center py-12">
@@ -344,6 +509,13 @@ const AyamAnakanModule = () => {
       ) : anakanList.length === 0 ? (
         <Card className="text-center py-12">
           <p className="text-gray-500">Belum ada data ayam anakan</p>
+        </Card>
+      ) : filteredAnakanList.length === 0 ? (
+        <Card className="text-center py-12">
+          <p className="text-gray-500">Tidak ada ayam anakan yang sesuai dengan filter</p>
+          <Button onClick={resetFilters} variant="outline" size="sm" className="mt-4">
+            Reset Filter
+          </Button>
         </Card>
       ) : (
         <>
