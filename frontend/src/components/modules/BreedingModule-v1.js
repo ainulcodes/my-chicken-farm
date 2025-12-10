@@ -173,19 +173,26 @@ const BreedingModule = () => {
   const betinaList = ayamIndukList.filter(a => a.jenis_kelamin === 'Betina');
 
   // Filter breeding list
-  const filteredBreedingList = breedingList.filter(breeding => {
-    // Filter by pejantan
-    if (filters.pejantan_id !== 'all' && breeding.pejantan_id !== filters.pejantan_id) {
-      return false;
-    }
+  const filteredBreedingList = breedingList
+    .filter(breeding => {
+      // Filter by pejantan
+      if (filters.pejantan_id !== 'all' && breeding.pejantan_id !== filters.pejantan_id) {
+        return false;
+      }
 
-    // Filter by betina
-    if (filters.betina_id !== 'all' && breeding.betina_id !== filters.betina_id) {
-      return false;
-    }
+      // Filter by betina
+      if (filters.betina_id !== 'all' && breeding.betina_id !== filters.betina_id) {
+        return false;
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by tanggal_menetas (oldest to newest)
+      const dateA = a.tanggal_menetas ? new Date(a.tanggal_menetas) : new Date(0);
+      const dateB = b.tanggal_menetas ? new Date(b.tanggal_menetas) : new Date(0);
+      return dateA - dateB;
+    });
 
   const resetFilters = () => {
     setFilters({

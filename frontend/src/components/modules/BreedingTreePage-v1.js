@@ -132,23 +132,30 @@ const BreedingTreePageV1 = () => {
   };
 
   // Filter breeding data based on search
-  const filteredBreeding = breedingData.filter(breeding => {
-    if (!searchTerm) return true;
+  const filteredBreeding = breedingData
+    .filter(breeding => {
+      if (!searchTerm) return true;
 
-    const pejantan = getIndukanById(breeding.pejantan_id);
-    const betina = getIndukanById(breeding.betina_id);
-    const anakan = getAnakanByBreedingId(breeding.id);
+      const pejantan = getIndukanById(breeding.pejantan_id);
+      const betina = getIndukanById(breeding.betina_id);
+      const anakan = getAnakanByBreedingId(breeding.id);
 
-    const searchLower = searchTerm.toLowerCase();
+      const searchLower = searchTerm.toLowerCase();
 
-    return (
-      pejantan?.kode?.toLowerCase().includes(searchLower) ||
-      betina?.kode?.toLowerCase().includes(searchLower) ||
-      pejantan?.ras?.toLowerCase().includes(searchLower) ||
-      betina?.ras?.toLowerCase().includes(searchLower) ||
-      anakan.some(a => a.kode?.toLowerCase().includes(searchLower))
-    );
-  });
+      return (
+        pejantan?.kode?.toLowerCase().includes(searchLower) ||
+        betina?.kode?.toLowerCase().includes(searchLower) ||
+        pejantan?.ras?.toLowerCase().includes(searchLower) ||
+        betina?.ras?.toLowerCase().includes(searchLower) ||
+        anakan.some(a => a.kode?.toLowerCase().includes(searchLower))
+      );
+    })
+    .sort((a, b) => {
+      // Sort by tanggal_menetas (oldest to newest)
+      const dateA = a.tanggal_menetas ? new Date(a.tanggal_menetas) : new Date(0);
+      const dateB = b.tanggal_menetas ? new Date(b.tanggal_menetas) : new Date(0);
+      return dateA - dateB;
+    });
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
