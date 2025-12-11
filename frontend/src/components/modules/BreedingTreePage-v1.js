@@ -15,7 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-const BreedingTreePageV1 = () => {
+const BreedingTreePageV1 = ({ autoExpandBreedingId, onBack }) => {
   const [breedingData, setBreedingData] = useState([]);
   const [indukanData, setIndukanData] = useState([]);
   const [anakanData, setAnakanData] = useState([]);
@@ -28,6 +28,14 @@ const BreedingTreePageV1 = () => {
   useEffect(() => {
     loadAllData();
   }, []);
+
+  // Auto-expand breeding node when autoExpandBreedingId is provided
+  useEffect(() => {
+    if (autoExpandBreedingId) {
+      setExpandedNodes(new Set([autoExpandBreedingId]));
+      setSearchTerm(''); // Clear search to show the specific breeding
+    }
+  }, [autoExpandBreedingId]);
 
   // Reset to page 1 when search term changes
   useEffect(() => {
@@ -134,6 +142,11 @@ const BreedingTreePageV1 = () => {
   // Filter breeding data based on search
   const filteredBreeding = breedingData
     .filter(breeding => {
+      // If autoExpandBreedingId is set, only show that breeding
+      if (autoExpandBreedingId) {
+        return breeding.id === autoExpandBreedingId;
+      }
+
       if (!searchTerm) return true;
 
       const pejantan = getIndukanById(breeding.pejantan_id);
@@ -332,7 +345,7 @@ const BreedingTreePageV1 = () => {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
-          🌳 Silsilah Breeding
+          🌳 Trah Breeding
         </h2>
         <p className="text-sm text-gray-600">
           Visualisasi hierarki breeding - dari indukan ke keturunan

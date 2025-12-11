@@ -31,6 +31,7 @@ import BreedingTreePageV1 from './modules/BreedingTreePage-v1';
  */
 const DashboardV2Workflow = () => {
   const [activeModule, setActiveModule] = useState(null); // null = dashboard, or module name
+  const [selectedBreedingId, setSelectedBreedingId] = useState(null); // for auto-expanding trah
   const [breedingList, setBreedingList] = useState([]);
   const [anakanList, setAnakanList] = useState([]);
   const [indukanList, setIndukanList] = useState([]);
@@ -91,10 +92,17 @@ const DashboardV2Workflow = () => {
 
   const healthyIndukan = useMemo(() => {
     // Filter: Sehat dan bukan Dijual/Mati
-    return indukanList.filter(i =>
+    const filtered = indukanList.filter(i =>
       i.status === 'Sehat' ||
       (i.status !== 'Mati' && i.status !== 'Dijual')
     );
+
+    // Sort by tanggal_lahir (oldest first) if available
+    return filtered.sort((a, b) => {
+      const dateA = a.tanggal_lahir ? new Date(a.tanggal_lahir) : new Date(0);
+      const dateB = b.tanggal_lahir ? new Date(b.tanggal_lahir) : new Date(0);
+      return dateA - dateB;
+    });
   }, [indukanList]);
 
   // Get indukan by ID
@@ -294,7 +302,10 @@ const DashboardV2Workflow = () => {
       <div className="space-y-6">
         {/* Back Button */}
         <Button
-          onClick={() => setActiveModule(null)}
+          onClick={() => {
+            setActiveModule(null);
+            setSelectedBreedingId(null); // Reset filter
+          }}
           variant="outline"
           size="sm"
           className="flex items-center gap-2"
@@ -304,9 +315,24 @@ const DashboardV2Workflow = () => {
 
         {/* Render selected module */}
         {activeModule === 'breeding' && <BreedingModuleV2 />}
-        {activeModule === 'anakan' && <AyamAnakanModuleV2 />}
+        {activeModule === 'anakan' && (
+          <AyamAnakanModuleV2
+            onNavigateToTrah={(breedingId) => {
+              setSelectedBreedingId(breedingId);
+              setActiveModule('trah');
+            }}
+          />
+        )}
         {activeModule === 'indukan' && <AyamIndukModuleV2 />}
-        {activeModule === 'silsilah' && <BreedingTreePageV1 />}
+        {activeModule === 'trah' && (
+          <BreedingTreePageV1
+            autoExpandBreedingId={selectedBreedingId}
+            onBack={() => {
+              setSelectedBreedingId(null);
+              setActiveModule(null);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -378,10 +404,13 @@ const DashboardV2Workflow = () => {
             <Button
               variant="outline"
               className="justify-start h-auto py-3 bg-white hover:bg-purple-50 hover:border-purple-400 transition-all"
-              onClick={() => setActiveModule('silsilah')}
+              onClick={() => {
+                setSelectedBreedingId(null); // Clear filter
+                setActiveModule('trah');
+              }}
             >
               <div className="text-left w-full">
-                <div className="font-semibold text-sm">🌳 Silsilah</div>
+                <div className="font-semibold text-sm">🌳 Trah</div>
                 <div className="text-xs text-gray-500">Lihat breeding tree</div>
               </div>
             </Button>

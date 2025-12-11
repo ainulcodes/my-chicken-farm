@@ -59,33 +59,44 @@ export const getAnakanProgress = (breeding, anakanList) => {
  * @param {Array} breedingList - List of all breeding
  * @param {Array} anakanList - List of all anakan
  * @param {string} stage - Workflow stage: 'new', 'ready-to-record'
- * @returns {Array} Filtered breeding list
+ * @returns {Array} Filtered breeding list (sorted by oldest tanggal_menetas first)
  */
 export const filterBreedingByWorkflow = (breedingList, anakanList, stage) => {
+  let filtered = [];
+
   switch(stage) {
     case 'new': // < 3 months (90 days)
-      return breedingList.filter(b => getAgeInDays(b.tanggal_menetas) < 90);
+      filtered = breedingList.filter(b => getAgeInDays(b.tanggal_menetas) < 90);
+      break;
 
     case 'ready-to-record': // 3+ months, incomplete recording
-      return breedingList.filter(b => {
+      filtered = breedingList.filter(b => {
         const age = getAgeInDays(b.tanggal_menetas);
         const progress = getAnakanProgress(b, anakanList);
         return age >= 90 && !progress.isComplete;
       });
+      break;
 
     default:
-      return breedingList;
+      filtered = breedingList;
   }
+
+  // Sort by tanggal_menetas (oldest first)
+  return filtered.sort((a, b) => {
+    const dateA = a.tanggal_menetas ? new Date(a.tanggal_menetas) : new Date(0);
+    const dateB = b.tanggal_menetas ? new Date(b.tanggal_menetas) : new Date(0);
+    return dateA - dateB;
+  });
 };
 
 /**
  * Filter anakan by maturity for promotion
  * @param {Array} anakanList - List of all anakan
  * @param {Array} breedingList - List of all breeding (to get tanggal_menetas)
- * @returns {Array} Mature anakan ready for promotion
+ * @returns {Array} Mature anakan ready for promotion (sorted by oldest tanggal_menetas first)
  */
 export const filterMatureAnakan = (anakanList, breedingList) => {
-  return anakanList.filter(anakan => {
+  const filtered = anakanList.filter(anakan => {
     // Only healthy anakan
     if (anakan.status !== 'Sehat') return false;
 
@@ -96,6 +107,15 @@ export const filterMatureAnakan = (anakanList, breedingList) => {
     // Check if mature (>= 180 days)
     const age = getAgeInDays(breeding.tanggal_menetas);
     return age >= 180;
+  });
+
+  // Sort by breeding's tanggal_menetas (oldest first)
+  return filtered.sort((anakanA, anakanB) => {
+    const breedingA = breedingList.find(br => br.id === anakanA.breeding_id);
+    const breedingB = breedingList.find(br => br.id === anakanB.breeding_id);
+    const dateA = breedingA?.tanggal_menetas ? new Date(breedingA.tanggal_menetas) : new Date(0);
+    const dateB = breedingB?.tanggal_menetas ? new Date(breedingB.tanggal_menetas) : new Date(0);
+    return dateA - dateB;
   });
 };
 

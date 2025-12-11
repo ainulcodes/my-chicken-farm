@@ -15,7 +15,7 @@ const Dashboard = () => {
     { id: 'indukan', name: 'Ayam Indukan', icon: '🐓', color: 'from-emerald-500 to-teal-600' },
     { id: 'breeding', name: 'Breeding', icon: '💑', color: 'from-blue-500 to-cyan-600' },
     { id: 'anakan', name: 'Ayam Anakan', icon: '🐣', color: 'from-amber-500 to-orange-600' },
-    { id: 'silsilah', name: 'Silsilah', icon: '🌳', color: 'from-purple-500 to-pink-600' },
+    { id: 'trah', name: 'Trah', icon: '🌳', color: 'from-purple-500 to-pink-600' },
   ];
 
   return (
@@ -95,7 +95,7 @@ const Dashboard = () => {
               {activeModule === 'indukan' && <AyamIndukModuleV1 />}
               {activeModule === 'breeding' && <BreedingModuleV1 />}
               {activeModule === 'anakan' && <AyamAnakanModuleV1 />}
-              {activeModule === 'silsilah' && <BreedingTreePageV1 />}
+              {activeModule === 'trah' && <BreedingTreePageV1 />}
             </div>
           </>
         )}

@@ -263,18 +263,6 @@ const AyamIndukModuleV2 = () => {
                 Hapus
               </Button>
             </div>
-
-            {/* View Lineage Button - NEW! */}
-            {breedingCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                onClick={() => toast.info(`Lihat silsilah ${ayam.kode}`)}
-              >
-                🌳 Lihat Silsilah
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>

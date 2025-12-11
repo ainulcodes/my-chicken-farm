@@ -17,7 +17,7 @@ import {
   groupAnakanByBreeding
 } from '../../utils/workflowHelpers';
 
-const AyamAnakanModuleV2 = () => {
+const AyamAnakanModuleV2 = ({ onNavigateToTrah }) => {
   const [anakanList, setAnakanList] = useState([]);
   const [breedingList, setBreedingList] = useState([]);
   const [indukanList, setIndukanList] = useState([]);
@@ -291,6 +291,24 @@ const AyamAnakanModuleV2 = () => {
                 size="sm"
               >
                 ⬆️ Promosi ke Indukan
+              </Button>
+            )}
+
+            {/* View Trah Button */}
+            {anakan.breeding_id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50 mt-2"
+                onClick={() => {
+                  if (onNavigateToTrah) {
+                    onNavigateToTrah(anakan.breeding_id);
+                  } else {
+                    toast.info(`Lihat trah untuk ${anakan.kode}`);
+                  }
+                }}
+              >
+                🌳 Lihat Trah
               </Button>
             )}
           </div>
