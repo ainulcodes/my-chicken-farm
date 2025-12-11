@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
 import AyamIndukModuleV1 from './modules/AyamIndukModule-v1';
 import BreedingModuleV1 from './modules/BreedingModule-v1';
 import AyamAnakanModuleV1 from './modules/AyamAnakanModule-v1';
 import BreedingTreePageV1 from './modules/BreedingTreePage-v1';
+import DashboardV2Workflow from './Dashboard-v2-Workflow';
 
 const Dashboard = () => {
   const [activeModule, setActiveModule] = useState('indukan');
+  const [viewMode, setViewMode] = useState('workflow'); // 'workflow' or 'modules'
 
   const modules = [
     { id: 'indukan', name: 'Ayam Indukan', icon: '🐓', color: 'from-emerald-500 to-teal-600' },
@@ -29,51 +32,73 @@ const Dashboard = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                  Breeding Ayam - V1
+                  Breeding Ayam {viewMode === 'workflow' ? '- Workflow' : '- V1'}
                 </h1>
                 <p className="text-xs text-gray-500">Sistem Manajemen Sederhana</p>
               </div>
             </div>
+            <Button
+              onClick={() => setViewMode(viewMode === 'workflow' ? 'modules' : 'workflow')}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              {viewMode === 'workflow' ? (
+                <>📋 Tampilan Module</>
+              ) : (
+                <>🔄 Tampilan Workflow</>
+              )}
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Module Navigation */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {modules.map((module) => (
-            <Card
-              key={module.id}
-              className={`cursor-pointer transition-all hover:scale-105 ${
-                activeModule === module.id
-                  ? 'ring-2 ring-offset-2 ring-emerald-500 shadow-xl'
-                  : 'hover:shadow-lg'
-              }`}
-              onClick={() => setActiveModule(module.id)}
-              data-testid={`module-${module.id}`}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${module.color} rounded-xl flex items-center justify-center text-2xl shadow-md`}>
-                    {module.icon}
-                  </div>
-                  <CardTitle className="text-lg" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                    {module.name}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
+        {viewMode === 'workflow' ? (
+          /* Workflow View */
+          <div className="animate-fadeIn">
+            <DashboardV2Workflow />
+          </div>
+        ) : (
+          /* Module View */
+          <>
+            {/* Module Navigation */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {modules.map((module) => (
+                <Card
+                  key={module.id}
+                  className={`cursor-pointer transition-all hover:scale-105 ${
+                    activeModule === module.id
+                      ? 'ring-2 ring-offset-2 ring-emerald-500 shadow-xl'
+                      : 'hover:shadow-lg'
+                  }`}
+                  onClick={() => setActiveModule(module.id)}
+                  data-testid={`module-${module.id}`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 bg-gradient-to-br ${module.color} rounded-xl flex items-center justify-center text-2xl shadow-md`}>
+                        {module.icon}
+                      </div>
+                      <CardTitle className="text-lg" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+                        {module.name}
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
 
-        {/* Active Module Content */}
-        <div className="animate-fadeIn">
-          {activeModule === 'indukan' && <AyamIndukModuleV1 />}
-          {activeModule === 'breeding' && <BreedingModuleV1 />}
-          {activeModule === 'anakan' && <AyamAnakanModuleV1 />}
-          {activeModule === 'silsilah' && <BreedingTreePageV1 />}
-        </div>
+            {/* Active Module Content */}
+            <div className="animate-fadeIn">
+              {activeModule === 'indukan' && <AyamIndukModuleV1 />}
+              {activeModule === 'breeding' && <BreedingModuleV1 />}
+              {activeModule === 'anakan' && <AyamAnakanModuleV1 />}
+              {activeModule === 'silsilah' && <BreedingTreePageV1 />}
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

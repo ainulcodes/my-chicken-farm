@@ -1,0 +1,601 @@
+import React, { useState, useEffect } from 'react';
+import { cachedAPI } from '../../services/cachedApi';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Badge } from '../ui/badge';
+import { toast } from 'sonner';
+import { AgeBadge } from '../shared/StatusBadge';
+import {
+  getMaturityStatus,
+  getAnakanProgress,
+  calculateAge,
+  formatDate
+} from '../../utils/workflowHelpers';
+
+const BreedingModuleV2 = () => {
+  const [breedingList, setBreedingList] = useState([]);
+  const [ayamIndukList, setAyamIndukList] = useState([]);
+  const [anakanList, setAnakanList] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingBreeding, setEditingBreeding] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(6); // 2 kolom x 3 baris
+  const [formData, setFormData] = useState({
+    pejantan_id: '',
+    betina_id: '',
+    tanggal_kawin: '',
+    tanggal_menetas: '',
+    jumlah_anakan: 0
+  });
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    pejantan_id: 'all',
+    betina_id: 'all'
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async (forceRefresh = false) => {
+    setLoading(true);
+    try {
+      const [breedingResponse, indukanResponse, anakanResponse] = await Promise.all([
+        cachedAPI.getBreeding(forceRefresh),
+        cachedAPI.getAyamInduk(forceRefresh),
+        cachedAPI.getAyamAnakan(null, forceRefresh)
+      ]);
+      setBreedingList(breedingResponse.data);
+      setAyamIndukList(indukanResponse.data);
+      setAnakanList(anakanResponse.data || []);
+      setIsFromCache(breedingResponse.fromCache && indukanResponse.fromCache);
+
+      // Hanya tampilkan notifikasi saat fetch dari API
+      if (!breedingResponse.fromCache || !indukanResponse.fromCache) {
+        if (forceRefresh) {
+          toast.success('✅ Data berhasil disinkronkan');
+        } else {
+          toast.success('✅ Data berhasil dimuat');
+        }
+      }
+    } catch (error) {
+      toast.error('Gagal memuat data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAyamName = (id) => {
+    const ayam = ayamIndukList.find(a => a.id === id);
+    return ayam ? `${ayam.kode} (${ayam.ras})` : '-';
+  };
+
+  const formatBreedingNumber = (breeding, index) => {
+    const number = String(index + 1).padStart(3, '0');
+    const date = breeding.tanggal_menetas ? formatDate(breeding.tanggal_menetas) : '-';
+    return `Breeding #${number} - ${date}`;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validasi pejantan dan betina
+    const pejantan = ayamIndukList.find(a => a.id === formData.pejantan_id);
+    const betina = ayamIndukList.find(a => a.id === formData.betina_id);
+
+    if (!pejantan || pejantan.jenis_kelamin !== 'Jantan') {
+      toast.error('Pilih ayam jantan untuk pejantan');
+      return;
+    }
+
+    if (!betina || betina.jenis_kelamin !== 'Betina') {
+      toast.error('Pilih ayam betina untuk indukan betina');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (editingBreeding) {
+        const response = await cachedAPI.updateBreeding(editingBreeding.id, formData);
+        if (response.success) {
+          // Optimistic update
+          setBreedingList(breedingList.map(b =>
+            b.id === editingBreeding.id ? { ...b, ...formData } : b
+          ));
+          toast.success('Data breeding berhasil diupdate');
+        }
+      } else {
+        const response = await cachedAPI.addBreeding(formData);
+        if (response.success && response.data) {
+          // Optimistic update
+          setBreedingList([...breedingList, response.data]);
+          toast.success('Data breeding berhasil ditambahkan');
+        }
+      }
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast.error('Gagal menyimpan data');
+      loadData(); // Refetch on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Yakin ingin menghapus data ini?')) {
+      try {
+        const response = await cachedAPI.deleteBreeding(id);
+        if (response.success) {
+          // Optimistic update
+          setBreedingList(breedingList.filter(b => b.id !== id));
+          toast.success('Data breeding berhasil dihapus');
+        }
+      } catch (error) {
+        toast.error('Gagal menghapus data');
+        loadData(); // Refetch on error
+      }
+    }
+  };
+
+  const handleEdit = (breeding) => {
+    setEditingBreeding(breeding);
+    setFormData({
+      pejantan_id: breeding.pejantan_id,
+      betina_id: breeding.betina_id,
+      tanggal_kawin: breeding.tanggal_kawin || '',
+      tanggal_menetas: breeding.tanggal_menetas,
+      jumlah_anakan: breeding.jumlah_anakan
+    });
+    setIsDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      pejantan_id: '',
+      betina_id: '',
+      tanggal_kawin: '',
+      tanggal_menetas: '',
+      jumlah_anakan: 0
+    });
+    setEditingBreeding(null);
+  };
+
+  const handleDialogChange = (open) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  };
+
+  const pejantanList = ayamIndukList.filter(a => a.jenis_kelamin === 'Jantan');
+  const betinaList = ayamIndukList.filter(a => a.jenis_kelamin === 'Betina');
+
+  // Filter breeding list
+  const filteredBreedingList = breedingList
+    .filter(breeding => {
+      // Filter by pejantan
+      if (filters.pejantan_id !== 'all' && breeding.pejantan_id !== filters.pejantan_id) {
+        return false;
+      }
+
+      // Filter by betina
+      if (filters.betina_id !== 'all' && breeding.betina_id !== filters.betina_id) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by tanggal_menetas (oldest to newest)
+      const dateA = a.tanggal_menetas ? new Date(a.tanggal_menetas) : new Date(0);
+      const dateB = b.tanggal_menetas ? new Date(b.tanggal_menetas) : new Date(0);
+      return dateA - dateB;
+    });
+
+  const resetFilters = () => {
+    setFilters({
+      pejantan_id: 'all',
+      betina_id: 'all'
+    });
+    setCurrentPage(1);
+  };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredBreedingList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBreedingList.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  // Render breeding card with enhancements
+  const BreedingCard = ({ breeding, index }) => {
+    const maturityStatus = getMaturityStatus(breeding.tanggal_menetas);
+    const ageText = calculateAge(breeding.tanggal_menetas);
+    const progress = getAnakanProgress(breeding, anakanList);
+
+    return (
+      <Card
+        key={breeding.id}
+        className="hover:shadow-lg transition-shadow"
+        data-testid={`breeding-item-${breeding.id}`}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span className="flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+              </svg>
+              {formatBreedingNumber(breeding, indexOfFirstItem + index)}
+            </span>
+            <span className="text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+              {breeding.jumlah_anakan} Anakan
+            </span>
+          </CardTitle>
+
+          {/* Age Badge */}
+          <div className="mt-2">
+            <AgeBadge
+              birthDate={breeding.tanggal_menetas}
+              ageText={ageText}
+              maturityStatus={maturityStatus}
+            />
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="space-y-3 text-sm">
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-xs text-gray-500 mb-1">Pejantan</p>
+              <p className="font-medium text-blue-900">{getAyamName(breeding.pejantan_id)}</p>
+            </div>
+            <div className="bg-pink-50 p-3 rounded-lg">
+              <p className="text-xs text-gray-500 mb-1">Indukan Betina</p>
+              <p className="font-medium text-pink-900">{getAyamName(breeding.betina_id)}</p>
+            </div>
+
+            {/* Progress Bar - NEW! */}
+            {maturityStatus.status !== 'young' && (
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-gray-600 font-medium">Anakan Tercatat</span>
+                  <span className="font-bold text-gray-800">
+                    {progress.recorded}/{progress.total}
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${progress.percentage}%` }}
+                  />
+                </div>
+                {progress.isComplete && (
+                  <p className="text-xs text-green-600 mt-1 font-medium">✓ Lengkap!</p>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-xs text-gray-500">Tanggal Kawin</p>
+                <p className="font-medium">{formatDate(breeding.tanggal_kawin)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Tanggal Menetas</p>
+                <p className="font-medium">{formatDate(breeding.tanggal_menetas)}</p>
+              </div>
+            </div>
+
+            {/* Action Button - NEW! */}
+            {maturityStatus.status === 'ready' && !progress.isComplete && (
+              <Button
+                className="w-full btn-action-catat mt-2"
+                size="sm"
+                onClick={() => {
+                  toast.info(`Catat anakan untuk breeding ini (${progress.total - progress.recorded} tersisa)`);
+                }}
+              >
+                ➕ Catat Anakan ({progress.total - progress.recorded} tersisa)
+              </Button>
+            )}
+          </div>
+
+          <div className="flex space-x-2 mt-4 pt-4 border-t">
+            <Button
+              onClick={() => handleEdit(breeding)}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              data-testid={`edit-breeding-${breeding.id}`}
+            >
+              Edit
+            </Button>
+            <Button
+              onClick={() => handleDelete(breeding.id)}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-red-600 hover:bg-red-50"
+              data-testid={`delete-breeding-${breeding.id}`}
+            >
+              Hapus
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+            Data Breeding <Badge variant="outline" className="ml-2 text-xs">v2</Badge>
+          </h2>
+          <p className="text-sm text-gray-500">
+            {filteredBreedingList.length} dari {breedingList.length} data breeding
+            {isFromCache && <span className="ml-2 text-xs text-blue-600">⚡ Loaded from cache</span>}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => loadData(true)}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="text-gray-600"
+          >
+            {loading ? 'Syncing...' : '🔄 Refresh'}
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl shadow-md" data-testid="add-breeding-button">
+                + Tambah Breeding
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]" data-testid="breeding-dialog">
+              <DialogHeader>
+                <DialogTitle>{editingBreeding ? 'Edit Data Breeding' : 'Tambah Data Breeding'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="pejantan">Pejantan (Jantan)</Label>
+                  <Select
+                    value={formData.pejantan_id}
+                    onValueChange={(value) => setFormData({ ...formData, pejantan_id: value })}
+                    required
+                  >
+                    <SelectTrigger data-testid="breeding-pejantan-select">
+                      <SelectValue placeholder="Pilih pejantan" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {pejantanList.map((ayam) => (
+                        <SelectItem key={ayam.id} value={ayam.id}>
+                          {ayam.kode} - {ayam.ras}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="betina">Indukan Betina</Label>
+                  <Select
+                    value={formData.betina_id}
+                    onValueChange={(value) => setFormData({ ...formData, betina_id: value })}
+                    required
+                  >
+                    <SelectTrigger data-testid="breeding-betina-select">
+                      <SelectValue placeholder="Pilih indukan betina" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {betinaList.map((ayam) => (
+                        <SelectItem key={ayam.id} value={ayam.id}>
+                          {ayam.kode} - {ayam.ras}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="tanggal_kawin">Tanggal Kawin (Opsional)</Label>
+                  <Input
+                    id="tanggal_kawin"
+                    type="date"
+                    value={formData.tanggal_kawin}
+                    onChange={(e) => setFormData({ ...formData, tanggal_kawin: e.target.value })}
+                    data-testid="breeding-tanggal-kawin-input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="tanggal_menetas">Tanggal Menetas</Label>
+                  <Input
+                    id="tanggal_menetas"
+                    type="date"
+                    value={formData.tanggal_menetas}
+                    onChange={(e) => setFormData({ ...formData, tanggal_menetas: e.target.value })}
+                    required
+                    data-testid="breeding-tanggal-menetas-input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="jumlah_anakan">Jumlah Anakan</Label>
+                  <Input
+                    id="jumlah_anakan"
+                    type="number"
+                    min="0"
+                    value={formData.jumlah_anakan}
+                    onChange={(e) => setFormData({ ...formData, jumlah_anakan: parseInt(e.target.value) || 0 })}
+                    data-testid="breeding-jumlah-input"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>Batal</Button>
+                  <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700" data-testid="breeding-submit-button">
+                    {loading ? 'Menyimpan...' : 'Simpan'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Filter Section */}
+      {breedingList.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Filter Breeding</CardTitle>
+              <Button onClick={resetFilters} variant="outline" size="sm">
+                Reset Filter
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Pejantan Filter */}
+              <div>
+                <Label htmlFor="filter-pejantan" className="text-xs">Pejantan (Jantan)</Label>
+                <Select
+                  value={filters.pejantan_id}
+                  onValueChange={(value) => setFilters({ ...filters, pejantan_id: value })}
+                >
+                  <SelectTrigger id="filter-pejantan" className="h-9">
+                    <SelectValue placeholder="Semua Pejantan" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Pejantan</SelectItem>
+                    {pejantanList.map((ayam) => (
+                      <SelectItem key={ayam.id} value={ayam.id}>
+                        {ayam.kode} - {ayam.ras}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Betina Filter */}
+              <div>
+                <Label htmlFor="filter-betina" className="text-xs">Indukan Betina</Label>
+                <Select
+                  value={filters.betina_id}
+                  onValueChange={(value) => setFilters({ ...filters, betina_id: value })}
+                >
+                  <SelectTrigger id="filter-betina" className="h-9">
+                    <SelectValue placeholder="Semua Indukan" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">Semua Indukan</SelectItem>
+                    {betinaList.map((ayam) => (
+                      <SelectItem key={ayam.id} value={ayam.id}>
+                        {ayam.kode} - {ayam.ras}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* List */}
+      {loading && breedingList.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">Memuat data...</p>
+        </div>
+      ) : breedingList.length === 0 ? (
+        <Card className="text-center py-12">
+          <p className="text-gray-500">Belum ada data breeding</p>
+        </Card>
+      ) : filteredBreedingList.length === 0 ? (
+        <Card className="text-center py-12">
+          <p className="text-gray-500">Tidak ada breeding yang sesuai dengan filter</p>
+          <Button onClick={resetFilters} variant="outline" size="sm" className="mt-4">
+            Reset Filter
+          </Button>
+        </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" data-testid="breeding-list">
+            {currentItems.map((breeding, index) => (
+              <BreedingCard key={breeding.id} breeding={breeding} index={index} />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <Button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                variant="outline"
+                size="sm"
+                className="px-3"
+              >
+                ← Prev
+              </Button>
+
+              <div className="flex gap-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <Button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        variant={currentPage === pageNumber ? "default" : "outline"}
+                        size="sm"
+                        className={`px-3 ${currentPage === pageNumber ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                      >
+                        {pageNumber}
+                      </Button>
+                    );
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return <span key={pageNumber} className="px-2">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <Button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                variant="outline"
+                size="sm"
+                className="px-3"
+              >
+                Next →
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default BreedingModuleV2;
