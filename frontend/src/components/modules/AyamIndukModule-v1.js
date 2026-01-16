@@ -11,7 +11,7 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 
-const AyamIndukModuleV1 = () => {
+const AyamIndukModuleV1 = ({ readOnly = false }) => {
   console.log('🎯 AyamIndukModule-v1 component initialized');
   const [ayamList, setAyamList] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -320,103 +320,105 @@ const AyamIndukModuleV1 = () => {
           >
             {loading ? 'Syncing...' : '🔄 Refresh'}
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-            <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-md" data-testid="add-indukan-button">
-              + Tambah Indukan
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]" data-testid="indukan-dialog">
-            <DialogHeader>
-              <DialogTitle>{editingAyam ? 'Edit Ayam Indukan' : 'Tambah Ayam Indukan'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="kode">Kode Ayam</Label>
-                <Input
-                  id="kode"
-                  value={formData.kode}
-                  onChange={(e) => setFormData({ ...formData, kode: e.target.value })}
-                  placeholder="Contoh: IND-001"
-                  required
-                  data-testid="indukan-kode-input"
-                />
-              </div>
-              <div>
-                <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
-                <Select
-                  value={formData.jenis_kelamin}
-                  onValueChange={(value) => setFormData({ ...formData, jenis_kelamin: value })}
-                  required
-                >
-                  <SelectTrigger data-testid="indukan-gender-select">
-                    <SelectValue placeholder="Pilih jenis kelamin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Jantan">Jantan</SelectItem>
-                    <SelectItem value="Betina">Betina</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="ras">Ras</Label>
-                <Input
-                  id="ras"
-                  value={formData.ras}
-                  onChange={(e) => setFormData({ ...formData, ras: e.target.value })}
-                  placeholder="Contoh: Bangkok, Saigon"
-                  required
-                  data-testid="indukan-ras-input"
-                />
-              </div>
-              <div>
-                <Label htmlFor="warna">Warna</Label>
-                <Input
-                  id="warna"
-                  value={formData.warna}
-                  onChange={(e) => setFormData({ ...formData, warna: e.target.value })}
-                  placeholder="Contoh: Hitam, Merah"
-                  required
-                  data-testid="indukan-warna-input"
-                />
-              </div>
-              <div>
-                <Label htmlFor="tanggal_lahir">Tanggal Lahir</Label>
-                <Input
-                  id="tanggal_lahir"
-                  type="date"
-                  value={formData.tanggal_lahir}
-                  onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
-                  required
-                  data-testid="indukan-tanggal-input"
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger data-testid="indukan-status-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Sehat">Sehat</SelectItem>
-                    <SelectItem value="Sakit">Sakit</SelectItem>
-                    <SelectItem value="Dijual">Dijual</SelectItem>
-                    <SelectItem value="Mati">Mati</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>Batal</Button>
-                <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700" data-testid="indukan-submit-button">
-                  {loading ? 'Menyimpan...' : 'Simpan'}
+          {!readOnly && (
+            <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-md" data-testid="add-indukan-button">
+                  + Tambah Indukan
                 </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]" data-testid="indukan-dialog">
+                <DialogHeader>
+                  <DialogTitle>{editingAyam ? 'Edit Ayam Indukan' : 'Tambah Ayam Indukan'}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="kode">Kode Ayam</Label>
+                    <Input
+                      id="kode"
+                      value={formData.kode}
+                      onChange={(e) => setFormData({ ...formData, kode: e.target.value })}
+                      placeholder="Contoh: IND-001"
+                      required
+                      data-testid="indukan-kode-input"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
+                    <Select
+                      value={formData.jenis_kelamin}
+                      onValueChange={(value) => setFormData({ ...formData, jenis_kelamin: value })}
+                      required
+                    >
+                      <SelectTrigger data-testid="indukan-gender-select">
+                        <SelectValue placeholder="Pilih jenis kelamin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Jantan">Jantan</SelectItem>
+                        <SelectItem value="Betina">Betina</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ras">Ras</Label>
+                    <Input
+                      id="ras"
+                      value={formData.ras}
+                      onChange={(e) => setFormData({ ...formData, ras: e.target.value })}
+                      placeholder="Contoh: Bangkok, Saigon"
+                      required
+                      data-testid="indukan-ras-input"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="warna">Warna</Label>
+                    <Input
+                      id="warna"
+                      value={formData.warna}
+                      onChange={(e) => setFormData({ ...formData, warna: e.target.value })}
+                      placeholder="Contoh: Hitam, Merah"
+                      required
+                      data-testid="indukan-warna-input"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tanggal_lahir">Tanggal Lahir</Label>
+                    <Input
+                      id="tanggal_lahir"
+                      type="date"
+                      value={formData.tanggal_lahir}
+                      onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
+                      required
+                      data-testid="indukan-tanggal-input"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger data-testid="indukan-status-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Sehat">Sehat</SelectItem>
+                        <SelectItem value="Sakit">Sakit</SelectItem>
+                        <SelectItem value="Dijual">Dijual</SelectItem>
+                        <SelectItem value="Mati">Mati</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>Batal</Button>
+                    <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700" data-testid="indukan-submit-button">
+                      {loading ? 'Menyimpan...' : 'Simpan'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -569,125 +571,126 @@ const AyamIndukModuleV1 = () => {
         </Card>
       ) : (
         <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="indukan-list">
-          {currentItems.map((ayam) => (
-            <Card key={ayam.id} className="hover:shadow-lg transition-shadow" data-testid={`indukan-item-${ayam.id}`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <span>{ayam.kode}</span>
-                  <span className={`text-sm px-3 py-1 rounded-full ${
-                    ayam.status === 'Sehat' ? 'bg-green-100 text-green-700' :
-                    ayam.status === 'Sakit' ? 'bg-yellow-100 text-yellow-700' :
-                    ayam.status === 'Dijual' ? 'bg-blue-100 text-blue-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {ayam.status || 'Sehat'}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Jenis Kelamin:</span>
-                    <span className={`font-medium ${ayam.jenis_kelamin === 'Jantan' ? 'text-blue-600' : 'text-pink-600'}`}>
-                      {ayam.jenis_kelamin}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="indukan-list">
+            {currentItems.map((ayam) => (
+              <Card key={ayam.id} className="hover:shadow-lg transition-shadow" data-testid={`indukan-item-${ayam.id}`}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <span>{ayam.kode}</span>
+                    <span className={`text-sm px-3 py-1 rounded-full ${ayam.status === 'Sehat' ? 'bg-green-100 text-green-700' :
+                      ayam.status === 'Sakit' ? 'bg-yellow-100 text-yellow-700' :
+                        ayam.status === 'Dijual' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                      }`}>
+                      {ayam.status || 'Sehat'}
                     </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Jenis Kelamin:</span>
+                      <span className={`font-medium ${ayam.jenis_kelamin === 'Jantan' ? 'text-blue-600' : 'text-pink-600'}`}>
+                        {ayam.jenis_kelamin}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Ras:</span>
+                      <span className="font-medium">{ayam.ras}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Warna:</span>
+                      <span className="font-medium">{ayam.warna}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Tanggal Lahir:</span>
+                      <span className="font-medium">{formatDate(ayam.tanggal_lahir)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Umur:</span>
+                      <span className="font-medium text-emerald-700">{calculateAge(ayam.tanggal_lahir)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Ras:</span>
-                    <span className="font-medium">{ayam.ras}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Warna:</span>
-                    <span className="font-medium">{ayam.warna}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Tanggal Lahir:</span>
-                    <span className="font-medium">{formatDate(ayam.tanggal_lahir)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Umur:</span>
-                    <span className="font-medium text-emerald-700">{calculateAge(ayam.tanggal_lahir)}</span>
-                  </div>
-                </div>
-                <div className="flex space-x-2 mt-4 pt-4 border-t">
-                  <Button
-                    onClick={() => handleEdit(ayam)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    data-testid={`edit-indukan-${ayam.id}`}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(ayam.id)}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-red-600 hover:bg-red-50"
-                    data-testid={`delete-indukan-${ayam.id}`}
-                  >
-                    Hapus
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-6">
-            <Button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              variant="outline"
-              size="sm"
-              className="px-3"
-            >
-              ← Prev
-            </Button>
-
-            <div className="flex gap-1">
-              {[...Array(totalPages)].map((_, index) => {
-                const pageNumber = index + 1;
-                if (
-                  pageNumber === 1 ||
-                  pageNumber === totalPages ||
-                  (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                ) {
-                  return (
-                    <Button
-                      key={pageNumber}
-                      onClick={() => handlePageChange(pageNumber)}
-                      variant={currentPage === pageNumber ? "default" : "outline"}
-                      size="sm"
-                      className={`px-3 ${currentPage === pageNumber ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
-                    >
-                      {pageNumber}
-                    </Button>
-                  );
-                } else if (
-                  pageNumber === currentPage - 2 ||
-                  pageNumber === currentPage + 2
-                ) {
-                  return <span key={pageNumber} className="px-2">...</span>;
-                }
-                return null;
-              })}
-            </div>
-
-            <Button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              variant="outline"
-              size="sm"
-              className="px-3"
-            >
-              Next →
-            </Button>
+                  {!readOnly && (
+                    <div className="flex space-x-2 mt-4 pt-4 border-t">
+                      <Button
+                        onClick={() => handleEdit(ayam)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        data-testid={`edit-indukan-${ayam.id}`}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(ayam.id)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-red-600 hover:bg-red-50"
+                        data-testid={`delete-indukan-${ayam.id}`}
+                      >
+                        Hapus
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <Button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                variant="outline"
+                size="sm"
+                className="px-3"
+              >
+                ← Prev
+              </Button>
+
+              <div className="flex gap-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <Button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        variant={currentPage === pageNumber ? "default" : "outline"}
+                        size="sm"
+                        className={`px-3 ${currentPage === pageNumber ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                      >
+                        {pageNumber}
+                      </Button>
+                    );
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return <span key={pageNumber} className="px-2">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <Button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                variant="outline"
+                size="sm"
+                className="px-3"
+              >
+                Next →
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>

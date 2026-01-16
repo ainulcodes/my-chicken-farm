@@ -11,34 +11,35 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Check if user is already logged in via simple auth
+    const storedAuth = localStorage.getItem('isLoggedIn');
+    if (storedAuth === 'true') {
+      setIsLoggedIn(true);
     }
     setLoading(false);
   }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const login = (password) => {
+    const adminPassword = process.env.REACT_APP_ADMIN_PASSWORD;
+    if (password === adminPassword) {
+      setIsLoggedIn(true);
+      localStorage.setItem('isLoggedIn', 'true');
+      return true;
+    }
+    return false;
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    // Sign out from Google
-    if (window.google && window.google.accounts) {
-      window.google.accounts.id.disableAutoSelect();
-    }
+    setIsLoggedIn(false);
+    localStorage.removeItem('isLoggedIn');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ isLoggedIn, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

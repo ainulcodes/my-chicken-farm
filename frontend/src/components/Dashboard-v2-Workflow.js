@@ -29,7 +29,7 @@ import BreedingTreePageV1 from './modules/BreedingTreePage-v1';
  * Dashboard V2 - Workflow-Driven Interface
  * Follows natural farmer lifecycle: Breeding → Anakan → Indukan
  */
-const DashboardV2Workflow = () => {
+const DashboardV2Workflow = ({ readOnly = false }) => {
   const [activeModule, setActiveModule] = useState(null); // null = dashboard, or module name
   const [selectedBreedingId, setSelectedBreedingId] = useState(null); // for auto-expanding trah
   const [breedingList, setBreedingList] = useState([]);
@@ -225,15 +225,17 @@ const DashboardV2Workflow = () => {
             )}
 
             {/* Promotion button */}
-            <Button
-              className="w-full btn-action-promosi"
-              size="sm"
-              onClick={() => {
-                toast.info(`Fitur promosi ke indukan untuk ${anakan.kode} akan segera hadir`);
-              }}
-            >
-              ⬆️ Promosi ke Indukan
-            </Button>
+            {!readOnly && (
+              <Button
+                className="w-full btn-action-promosi"
+                size="sm"
+                onClick={() => {
+                  toast.info(`Fitur promosi ke indukan untuk ${anakan.kode} akan segera hadir`);
+                }}
+              >
+                ⬆️ Promosi ke Indukan
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -358,65 +360,67 @@ const DashboardV2Workflow = () => {
       </div>
 
       {/* Quick Access Module Navigation */}
-      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">📌 Akses Cepat Module</CardTitle>
-              <p className="text-xs text-gray-500 mt-1">
-                Kelola data detail dengan CRUD operations
-              </p>
+      {!readOnly && (
+        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">📌 Akses Cepat Module</CardTitle>
+                <p className="text-xs text-gray-500 mt-1">
+                  Kelola data detail dengan CRUD operations
+                </p>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Button
-              variant="outline"
-              className="justify-start h-auto py-3 bg-white hover:bg-blue-50 hover:border-blue-400 transition-all"
-              onClick={() => setActiveModule('breeding')}
-            >
-              <div className="text-left w-full">
-                <div className="font-semibold text-sm">🥚 Breeding</div>
-                <div className="text-xs text-gray-500">Kelola breeding pairs</div>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start h-auto py-3 bg-white hover:bg-amber-50 hover:border-amber-400 transition-all"
-              onClick={() => setActiveModule('anakan')}
-            >
-              <div className="text-left w-full">
-                <div className="font-semibold text-sm">🐣 Anakan</div>
-                <div className="text-xs text-gray-500">Kelola ayam anakan</div>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start h-auto py-3 bg-white hover:bg-emerald-50 hover:border-emerald-400 transition-all"
-              onClick={() => setActiveModule('indukan')}
-            >
-              <div className="text-left w-full">
-                <div className="font-semibold text-sm">🐔 Indukan</div>
-                <div className="text-xs text-gray-500">Kelola ayam indukan</div>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start h-auto py-3 bg-white hover:bg-purple-50 hover:border-purple-400 transition-all"
-              onClick={() => {
-                setSelectedBreedingId(null); // Clear filter
-                setActiveModule('trah');
-              }}
-            >
-              <div className="text-left w-full">
-                <div className="font-semibold text-sm">🌳 Trah</div>
-                <div className="text-xs text-gray-500">Lihat breeding tree</div>
-              </div>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <Button
+                variant="outline"
+                className="justify-start h-auto py-3 bg-white hover:bg-blue-50 hover:border-blue-400 transition-all"
+                onClick={() => setActiveModule('breeding')}
+              >
+                <div className="text-left w-full">
+                  <div className="font-semibold text-sm">🥚 Breeding</div>
+                  <div className="text-xs text-gray-500">Kelola breeding pairs</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start h-auto py-3 bg-white hover:bg-amber-50 hover:border-amber-400 transition-all"
+                onClick={() => setActiveModule('anakan')}
+              >
+                <div className="text-left w-full">
+                  <div className="font-semibold text-sm">🐣 Anakan</div>
+                  <div className="text-xs text-gray-500">Kelola ayam anakan</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start h-auto py-3 bg-white hover:bg-emerald-50 hover:border-emerald-400 transition-all"
+                onClick={() => setActiveModule('indukan')}
+              >
+                <div className="text-left w-full">
+                  <div className="font-semibold text-sm">🐔 Indukan</div>
+                  <div className="text-xs text-gray-500">Kelola ayam indukan</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start h-auto py-3 bg-white hover:bg-purple-50 hover:border-purple-400 transition-all"
+                onClick={() => {
+                  setSelectedBreedingId(null); // Clear filter
+                  setActiveModule('trah');
+                }}
+              >
+                <div className="text-left w-full">
+                  <div className="font-semibold text-sm">🌳 Trah</div>
+                  <div className="text-xs text-gray-500">Lihat breeding tree</div>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
