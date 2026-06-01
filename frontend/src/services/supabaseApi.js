@@ -17,14 +17,14 @@ import { supabase } from './supabaseClient';
 // Hanya kolom yang relevan untuk tiap tabel (mencegah field asing masuk ke insert).
 const FIELDS = {
   ayam_induk: [
-    'kode', 'jenis_kelamin', 'ras', 'warna', 'tanggal_lahir', 'status',
+    'kode', 'nama', 'marga', 'jenis_kelamin', 'ras', 'warna', 'tanggal_lahir', 'status',
     'folder_gdrive_id', 'folder_gdrive_url',
   ],
   breeding: [
     'pejantan_id', 'betina_id', 'tanggal_kawin', 'tanggal_menetas', 'jumlah_anakan',
   ],
   ayam_anakan: [
-    'breeding_id', 'kode', 'jenis_kelamin', 'warna', 'status',
+    'breeding_id', 'kode', 'nama', 'marga', 'jenis_kelamin', 'warna', 'status',
     'folder_gdrive_id', 'folder_gdrive_url',
   ],
 };

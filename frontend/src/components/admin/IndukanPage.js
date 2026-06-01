@@ -13,8 +13,9 @@ import {
 } from './primitives';
 import { calculateAge, formatDate, getBreedingCount } from '../../utils/workflowHelpers';
 import { suggestKode } from '../../utils/kode';
+import { suggestMarga, suggestNama, fullName } from '../../utils/nama';
 
-const EMPTY = { kode: '', jenis_kelamin: '', ras: '', warna: '', tanggal_lahir: '', status: 'Sehat' };
+const EMPTY = { kode: '', nama: '', marga: '', jenis_kelamin: '', ras: '', warna: '', tanggal_lahir: '', status: 'Sehat' };
 const PER_PAGE = 10;
 
 export default function IndukanPage() {
@@ -57,12 +58,21 @@ export default function IndukanPage() {
     }
   };
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setKodeAuto(true); setDialogOpen(true); };
+  const openAdd = () => {
+    setEditing(null);
+    setKodeAuto(true);
+    // Marga unik + nama otomatis (tema makhluk kuno China)
+    const marga = suggestMarga(list.map((x) => x.marga));
+    const nama = suggestNama(marga, list.map((x) => fullName(x.marga, x.nama)));
+    setForm({ ...EMPTY, marga, nama });
+    setDialogOpen(true);
+  };
   const openEdit = (a) => {
     setEditing(a);
     setKodeAuto(false);
     setForm({
-      kode: a.kode || '', jenis_kelamin: a.jenis_kelamin || '', ras: a.ras || '',
+      kode: a.kode || '', nama: a.nama || '', marga: a.marga || '',
+      jenis_kelamin: a.jenis_kelamin || '', ras: a.ras || '',
       warna: a.warna || '', tanggal_lahir: a.tanggal_lahir || '', status: a.status || 'Sehat',
     });
     setDialogOpen(true);
@@ -145,7 +155,7 @@ export default function IndukanPage() {
       if (filters.ras !== 'all' && a.ras !== filters.ras) return false;
       if (filters.jenis_kelamin !== 'all' && a.jenis_kelamin !== filters.jenis_kelamin) return false;
       if (filters.status !== 'all' && a.status !== filters.status) return false;
-      if (q && !(`${a.kode} ${a.ras} ${a.warna}`.toLowerCase().includes(q))) return false;
+      if (q && !(`${a.kode} ${fullName(a.marga, a.nama)} ${a.ras} ${a.warna}`.toLowerCase().includes(q))) return false;
       return true;
     });
   }, [list, filters, search]);
@@ -156,7 +166,18 @@ export default function IndukanPage() {
   const pageRows = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const columns = [
-    { key: 'kode', header: 'Kode', render: (a) => <span className="font-mono font-semibold">{a.kode}</span> },
+    {
+      key: 'nama', header: 'Nama',
+      render: (a) => {
+        const fn = fullName(a.marga, a.nama);
+        return (
+          <div className="min-w-0">
+            <p className="font-medium">{fn || '—'}</p>
+            <p className="font-mono text-xs text-muted-foreground">{a.kode}</p>
+          </div>
+        );
+      },
+    },
     { key: 'jk', header: 'Jenis Kelamin', render: (a) => <GenderPill gender={a.jenis_kelamin} /> },
     { key: 'ras', header: 'Ras', render: (a) => a.ras || '—' },
     { key: 'warna', header: 'Warna', render: (a) => a.warna || '—' },
@@ -306,6 +327,19 @@ export default function IndukanPage() {
                 {kodeAuto ? 'Otomatis dari kelamin + warna — boleh diubah.' : 'Diisi manual.'}
               </p>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="marga">Marga</Label>
+                <Input id="marga" value={form.marga} onChange={(e) => setForm({ ...form, marga: e.target.value })} placeholder="mis. Long" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nama">Nama</Label>
+                <Input id="nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} placeholder="mis. Wei" />
+              </div>
+            </div>
+            <p className="-mt-2 text-xs text-muted-foreground">
+              Nama lengkap: <span className="font-medium text-foreground">{fullName(form.marga, form.nama) || '—'}</span> · otomatis (tema makhluk kuno China), boleh diubah.
+            </p>
             <div className="space-y-1.5">
               <Label htmlFor="tgl">Tanggal Lahir <span className="text-muted-foreground">(opsional)</span></Label>
               <Input id="tgl" type="date" value={form.tanggal_lahir} onChange={(e) => setForm({ ...form, tanggal_lahir: e.target.value })} />

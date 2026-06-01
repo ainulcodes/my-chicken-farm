@@ -3,6 +3,7 @@ import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { ArrowLeft, GitBranch } from 'lucide-react';
 import { formatDate } from '../../utils/workflowHelpers';
+import { fullName } from '../../utils/nama';
 
 /**
  * SilsilahPage — visualisasi pohon keturunan dari satu breeding (trah).
@@ -136,8 +137,11 @@ function ChickenNode({ chicken, type, variant }) {
       <div className={cn('flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br text-3xl shadow-sm ring-2', bg, ring)}>
         {chicken ? illustration(type, chicken.jenis_kelamin) : '❓'}
       </div>
-      <div className="max-w-[7rem] text-center leading-tight">
-        <p className="truncate font-mono text-[11px] font-semibold text-foreground">{chicken?.kode || '—'}</p>
+      <div className="max-w-[7.5rem] text-center leading-tight">
+        {chicken && fullName(chicken.marga, chicken.nama) && (
+          <p className="truncate text-xs font-semibold text-foreground">{fullName(chicken.marga, chicken.nama)}</p>
+        )}
+        <p className="truncate font-mono text-[10px] text-muted-foreground">{chicken?.kode || '—'}</p>
         {chicken?.warna && <p className="truncate text-[10px] text-muted-foreground">{chicken.warna}</p>}
       </div>
     </div>

@@ -13,8 +13,9 @@ import {
 } from './primitives';
 import { formatDate, getAgeInDays } from '../../utils/workflowHelpers';
 import { suggestKode } from '../../utils/kode';
+import { suggestNama, fullName } from '../../utils/nama';
 
-const EMPTY = { breeding_id: '', kode: '', jenis_kelamin: '', warna: '', status: 'Sehat' };
+const EMPTY = { breeding_id: '', kode: '', nama: '', marga: '', jenis_kelamin: '', warna: '', status: 'Sehat' };
 const PER_PAGE = 10;
 
 export default function AnakanPage({ onNavigateToTrah }) {
@@ -69,10 +70,24 @@ export default function AnakanPage({ onNavigateToTrah }) {
     setEditing(a);
     setKodeAuto(false);
     setForm({
-      breeding_id: a.breeding_id || '', kode: a.kode || '',
+      breeding_id: a.breeding_id || '', kode: a.kode || '', nama: a.nama || '', marga: a.marga || '',
       jenis_kelamin: a.jenis_kelamin || '', warna: a.warna || '', status: a.status || 'Sehat',
     });
     setDialogOpen(true);
+  };
+
+  // Pilih breeding -> marga mewarisi pejantan, nama otomatis.
+  const onBreedingChange = (v) => {
+    const b = breedingById(v);
+    const pejantan = b ? indukById(b.pejantan_id) : null;
+    const marga = pejantan?.marga || '';
+    setForm((f) => {
+      const next = { ...f, breeding_id: v, marga };
+      if (!editing && (!f.nama || f.nama === '')) {
+        next.nama = suggestNama(marga, list.map((x) => fullName(x.marga, x.nama)));
+      }
+      return next;
+    });
   };
 
   // Kode otomatis dari (kelamin + warna), nomor gabungan anakan + indukan.
@@ -159,13 +174,19 @@ export default function AnakanPage({ onNavigateToTrah }) {
 
   const columns = [
     {
-      key: 'kode', header: 'Kode',
-      render: (a) => (
-        <span className="inline-flex items-center gap-1.5">
-          <span className="font-mono font-semibold">{a.kode}</span>
-          {isMature(a) && a.status === 'Sehat' && <Flame className="h-3.5 w-3.5 text-amber-500" title="Dewasa - siap promosi" />}
-        </span>
-      ),
+      key: 'nama', header: 'Nama',
+      render: (a) => {
+        const fn = fullName(a.marga, a.nama);
+        return (
+          <div className="min-w-0">
+            <p className="inline-flex items-center gap-1.5 font-medium">
+              {fn || '—'}
+              {isMature(a) && a.status === 'Sehat' && <Flame className="h-3.5 w-3.5 text-amber-500" title="Dewasa - siap promosi" />}
+            </p>
+            <p className="font-mono text-xs text-muted-foreground">{a.kode}</p>
+          </div>
+        );
+      },
     },
     { key: 'jk', header: 'Jenis Kelamin', render: (a) => <GenderPill gender={a.jenis_kelamin} /> },
     { key: 'warna', header: 'Warna', render: (a) => a.warna || '—' },
@@ -251,7 +272,7 @@ export default function AnakanPage({ onNavigateToTrah }) {
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>Asal Breeding</Label>
-              <Select value={form.breeding_id} onValueChange={(v) => setForm({ ...form, breeding_id: v })} required>
+              <Select value={form.breeding_id} onValueChange={onBreedingChange} required>
                 <SelectTrigger><SelectValue placeholder="Pilih breeding" /></SelectTrigger>
                 <SelectContent className="max-h-[280px]">
                   {breedingList.map((b) => <SelectItem key={b.id} value={b.id}>{breedingLabel(b)}</SelectItem>)}
@@ -292,6 +313,19 @@ export default function AnakanPage({ onNavigateToTrah }) {
                 {kodeAuto ? 'Otomatis dari kelamin + warna — boleh diubah.' : 'Diisi manual.'}
               </p>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="marga">Marga <span className="text-muted-foreground">(ikut pejantan)</span></Label>
+                <Input id="marga" value={form.marga} onChange={(e) => setForm({ ...form, marga: e.target.value })} placeholder="Pilih breeding dulu…" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nama">Nama</Label>
+                <Input id="nama" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} placeholder="mis. Wei" />
+              </div>
+            </div>
+            <p className="-mt-2 text-xs text-muted-foreground">
+              Nama lengkap: <span className="font-medium text-foreground">{fullName(form.marga, form.nama) || '—'}</span> · marga mewarisi pejantan, boleh diubah.
+            </p>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Menyimpan…' : 'Simpan'}</Button>
