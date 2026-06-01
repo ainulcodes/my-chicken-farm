@@ -39,10 +39,12 @@ jobs:
         run: yarn build
         env:
           CI: false
-          REACT_APP_SHEETS_API_URL: ${{ secrets.REACT_APP_SHEETS_API_URL }}
           REACT_APP_ENABLE_VISUAL_EDITS: true
           ENABLE_HEALTH_CHECK: false
-          REACT_APP_ADMIN_PASSWORD: ${{ secrets.REACT_APP_ADMIN_PASSWORD }}
+          # Supabase (backend baru). Anon key aman dipublik: dirancang untuk
+          # frontend & dilindungi Row Level Security. JANGAN taruh service_role di sini.
+          REACT_APP_SUPABASE_URL: https://ofdeyqwspolppnudebuq.supabase.co
+          REACT_APP_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mZGV5cXdzcG9scHBudWRlYnVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyOTU5NjEsImV4cCI6MjA5NTg3MTk2MX0.w7AytvyRnvIkIYMVdsIWaYx1vHIHMBG7tAMVx7lkokM
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

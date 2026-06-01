@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../services/supabaseClient';
 
 const AuthContext = createContext(null);
 
@@ -11,35 +12,43 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in via simple auth
-    const storedAuth = localStorage.getItem('isLoggedIn');
-    if (storedAuth === 'true') {
-      setIsLoggedIn(true);
-    }
-    setLoading(false);
+    // Ambil sesi yang tersimpan (jika sudah login sebelumnya)
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+
+    // Dengarkan perubahan auth (login / logout / refresh token)
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
-  const login = (password) => {
-    const adminPassword = process.env.REACT_APP_ADMIN_PASSWORD;
-    if (password === adminPassword) {
-      setIsLoggedIn(true);
-      localStorage.setItem('isLoggedIn', 'true');
-      return true;
+  // Login via Supabase Auth (email + password). Mengembalikan { success, error }.
+  const login = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return { success: false, error: error.message };
     }
-    return false;
+    setSession(data.session);
+    return { success: true };
   };
 
-  const logout = () => {
-    setIsLoggedIn(false);
-    localStorage.removeItem('isLoggedIn');
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{ isLoggedIn: !!session, session, user: session?.user || null, login, logout, loading }}
+    >
       {children}
     </AuthContext.Provider>
   );

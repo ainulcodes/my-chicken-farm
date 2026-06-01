@@ -4,7 +4,9 @@
  */
 
 import { cacheService, STORES } from './cacheService';
-import { apiV1 } from './api-v1';
+// Backend kini Supabase (sebelumnya './api-v1' = Google Sheets).
+// Interface apiV1 dipertahankan identik sehingga wrapper di bawah tidak berubah.
+import { apiV1 } from './supabaseApi';
 
 class CachedAPI {
   /**

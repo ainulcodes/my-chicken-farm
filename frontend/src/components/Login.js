@@ -8,16 +8,21 @@ import { Input } from './ui/input';
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = login(password);
-    if (success) {
+    setError('');
+    setSubmitting(true);
+    const result = await login(email, password);
+    setSubmitting(false);
+    if (result.success) {
       navigate('/admin');
     } else {
-      setError('Password salah!');
+      setError(result.error || 'Email atau password salah!');
     }
   };
 
@@ -47,10 +52,19 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
+                type="email"
+                placeholder="Email Admin"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                className="w-full px-4 py-3 rounded-xl border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+              <Input
                 type="password"
                 placeholder="Masukkan Password Admin"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 className="w-full px-4 py-3 rounded-xl border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
               />
               {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -58,9 +72,10 @@ const Login = () => {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium py-6 rounded-xl shadow-md hover:shadow-lg transition-all"
+              disabled={submitting}
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium py-6 rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-60"
             >
-              Masuk
+              {submitting ? 'Memproses...' : 'Masuk'}
             </Button>
           </form>
 
