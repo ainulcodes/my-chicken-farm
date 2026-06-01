@@ -6,10 +6,11 @@ import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import {
   Search, ChevronDown, ChevronRight, RefreshCw, Network,
-  UnfoldVertical, FoldVertical,
+  UnfoldVertical, FoldVertical, GitBranch,
 } from 'lucide-react';
 import { PageHeader, StatusPill, EmptyState, Pagination } from './primitives';
 import { formatDate, calculateAge } from '../../utils/workflowHelpers';
+import SilsilahPage from './SilsilahPage';
 
 const PER_PAGE = 6;
 
@@ -22,6 +23,7 @@ export default function TrahPage({ autoExpandBreedingId }) {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(new Set());
   const [page, setPage] = useState(1);
+  const [silsilahId, setSilsilahId] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -117,16 +119,21 @@ export default function TrahPage({ autoExpandBreedingId }) {
     const open = expanded.has(b.id);
     return (
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-        <button onClick={() => toggle(b.id)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40">
-          <div className="min-w-0">
-            <p className="font-display font-semibold">{formatDate(b.tanggal_menetas)}</p>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              <span className="text-blue-700">♂ {p?.kode || '?'}</span> × <span className="text-pink-700">♀ {bt?.kode || '?'}</span>
-              {' • '}{kids.length} anakan
-            </p>
-          </div>
-          {open ? <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />}
-        </button>
+        <div className="flex items-center gap-2 px-4 py-3">
+          <button onClick={() => toggle(b.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+            {open ? <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />}
+            <div className="min-w-0">
+              <p className="font-display font-semibold">{formatDate(b.tanggal_menetas)}</p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                <span className="text-blue-700">♂ {p?.kode || '?'}</span> × <span className="text-pink-700">♀ {bt?.kode || '?'}</span>
+                {' • '}{kids.length} anakan
+              </p>
+            </div>
+          </button>
+          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setSilsilahId(b.id)}>
+            <GitBranch className="mr-1.5 h-4 w-4" /> Lihat Hirarki
+          </Button>
+        </div>
 
         {open && (
           <div className="space-y-5 border-t p-4">
@@ -152,6 +159,20 @@ export default function TrahPage({ autoExpandBreedingId }) {
       </div>
     );
   };
+
+  // Tampilan silsilah penuh untuk satu breeding
+  if (silsilahId) {
+    const b = breeding.find((x) => x.id === silsilahId);
+    return (
+      <SilsilahPage
+        breeding={b}
+        breedings={breeding}
+        induk={induk}
+        anakan={anakan}
+        onBack={() => setSilsilahId(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
