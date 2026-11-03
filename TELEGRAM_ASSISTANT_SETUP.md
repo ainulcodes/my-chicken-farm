@@ -73,6 +73,8 @@ Setelah aktif, kirim `/help` dan `/ringkasan` ke bot.
 - `/crud` — bantuan tambah, ubah, dan hapus data.
 - Pertanyaan biasa — dijawab Gemini berdasarkan snapshot database, maksimal 500
   baris per tabel.
+- Reply pesan — teks yang dibalas dipakai sebagai konteks pertanyaan lanjutan,
+  misalnya reply hasil “data anakan” dengan “beserta umurnya”.
 
 ## Keamanan dan batasan
 

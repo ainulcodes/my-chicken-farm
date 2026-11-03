@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import {
   addDays,
+  contextualMessageText,
   dateInJakarta,
   markdownToTelegramHtml,
   secureEqual,
@@ -45,4 +46,15 @@ Deno.test("parseKeyValues mendukung alias dan nilai dengan spasi", () => {
       tanggal_lahir: "2026-01-02",
     },
   );
+});
+
+Deno.test("contextualMessageText menyertakan pesan yang dibalas", () => {
+  const result = contextualMessageText({
+    message_id: 2,
+    chat: { id: 1, type: "private" },
+    text: "beserta umurnya",
+    reply_to_message: { message_id: 1, text: "Data anakan AN-01" },
+  });
+  assertEquals(result.includes("Data anakan AN-01"), true);
+  assertEquals(result.endsWith("beserta umurnya"), true);
 });
