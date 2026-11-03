@@ -153,8 +153,41 @@ export function markdownToTelegramHtml(text: string): string {
     .replaceAll(">", "&gt;")
     .replace(/^\s*\*\s+/gm, "• ");
   return escaped
+    .replace(/```(?:\w+)?\n([\s\S]*?)```/g, "<pre>$1</pre>")
     .replace(/\*\*(.+?)\*\*/gs, "<b>$1</b>")
     .replace(/(^|[\s(])\*([^*\n]+?)\*(?=$|[\s).,:;!?])/gm, "$1<i>$2</i>");
+}
+
+export function formatTextTable(
+  headers: string[],
+  rows: Array<Array<string | number | null | undefined>>,
+  maxWidths: number[] = [],
+): string {
+  const normalized = [
+    headers,
+    ...rows.map((row) => row.map((cell) => String(cell ?? "-"))),
+  ];
+  const widths = headers.map((_, column) => {
+    const contentWidth = Math.max(
+      ...normalized.map((row) => String(row[column] ?? "").length),
+    );
+    return Math.min(contentWidth, maxWidths[column] ?? 18);
+  });
+  const render = (row: Array<string | number | null | undefined>) =>
+    row.map((cell, column) => {
+      const value = String(cell ?? "-");
+      const width = widths[column];
+      const clipped = value.length > width
+        ? `${value.slice(0, Math.max(1, width - 1))}…`
+        : value;
+      return clipped.padEnd(width);
+    }).join(" | ").trimEnd();
+  return [
+    render(headers),
+    widths.map((width) => "-".repeat(width)).join("-+-"),
+    ...rows.map(render),
+  ]
+    .join("\n");
 }
 
 export function contextualMessageText(message: TelegramMessage): string {
@@ -340,11 +373,15 @@ async function findIndukan(
   }
   return [
     `Ditemukan ${matches.length} indukan:`,
-    ...matches.map((row) =>
-      `• ${nameOf(row)} | ${row.jenis_kelamin ?? "-"} | ${row.ras ?? "-"} | ${
-        row.status ?? "-"
-      }`
+    "```",
+    formatTextTable(
+      ["Kode", "Nama", "JK", "Ras", "Status"],
+      matches.map((
+        row,
+      ) => [row.kode, row.nama, row.jenis_kelamin, row.ras, row.status]),
+      [12, 14, 7, 10, 10],
     ),
+    "```",
   ].join("\n");
 }
 
@@ -375,11 +412,17 @@ async function upcomingHatches(
   const byId = new Map(indukan.map((row) => [row.id, row]));
   return [
     `Jadwal menetas ${today} s.d. ${endDate}:`,
-    ...rows.map((row) =>
-      `• ${row.tanggal_menetas}: ${nameOf(byId.get(row.pejantan_id ?? ""))} × ${
-        nameOf(byId.get(row.betina_id ?? ""))
-      }`
+    "```",
+    formatTextTable(
+      ["Tanggal", "Pejantan", "Betina"],
+      rows.map((row) => [
+        row.tanggal_menetas,
+        nameOf(byId.get(row.pejantan_id ?? "")),
+        nameOf(byId.get(row.betina_id ?? "")),
+      ]),
+      [10, 16, 16],
     ),
+    "```",
   ].join("\n");
 }
 
@@ -429,6 +472,7 @@ async function askGemini(
     "Anda adalah asisten read-only peternakan ayam. Jawab dalam Bahasa Indonesia yang ringkas.",
     "Gunakan HANYA data JSON yang diberikan. Jangan mengarang data atau mengklaim telah mengubah database.",
     "Jika data tidak cukup, katakan dengan jelas. Untuk saran kesehatan, beri pengingat agar berkonsultasi dengan dokter hewan.",
+    "Jika jawaban berisi daftar beberapa record, tampilkan sebagai tabel teks ringkas di dalam blok ``` dengan kolom pendek. Batasi lebar isi tiap kolom sekitar 14 karakter agar nyaman di Telegram mobile.",
     `Pertanyaan pengguna: ${question}`,
     `Data peternakan: ${farmContext}`,
   ].join("\n\n");

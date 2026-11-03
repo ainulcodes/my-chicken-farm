@@ -3,6 +3,7 @@ import {
   addDays,
   contextualMessageText,
   dateInJakarta,
+  formatTextTable,
   markdownToTelegramHtml,
   secureEqual,
   splitTelegramText,
@@ -57,4 +58,14 @@ Deno.test("contextualMessageText menyertakan pesan yang dibalas", () => {
   });
   assertEquals(result.includes("Data anakan AN-01"), true);
   assertEquals(result.endsWith("beserta umurnya"), true);
+});
+
+Deno.test("formatTextTable meratakan dan memotong kolom", () => {
+  assertEquals(
+    formatTextTable(["Kode", "Status"], [["AN-01", "Sehat"], [
+      "AN-02",
+      "Sangat Panjang",
+    ]], [5, 6]),
+    "Kode  | Status\n------+-------\nAN-01 | Sehat\nAN-02 | Sanga…",
+  );
 });
