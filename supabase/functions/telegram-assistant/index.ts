@@ -491,14 +491,18 @@ async function classifyNaturalCrud(text: string): Promise<NaturalCrudIntent> {
   const models = [...new Set([primaryModel, ...fallbackModels])];
   const prompt = [
     "Ubah permintaan CRUD peternakan berikut menjadi SATU objek JSON, tanpa markdown.",
-    'Schema: {"operation":"insert|update|delete","entity":"indukan|breeding|anakan","identifier":"kode atau UUID atau null","values":{},"confidence":0.0,"clarification":null}',
+    'Schema: {"operation":"insert|update|delete","entity":"indukan|breeding|anakan","identifier":"kode atau UUID atau null","selectors":{},"values":{},"records":[],"confidence":0.0,"clarification":null}',
     "Gunakan field snake_case berikut saja:",
     "indukan: kode,nama,marga,jenis_kelamin,ras,warna,tanggal_lahir,status",
     "breeding: pejantan_id,betina_id,tanggal_kawin,tanggal_menetas,jumlah_anakan",
     "anakan: breeding_id,kode,nama,marga,jenis_kelamin,warna,status",
     "Alias: pejantan/betina boleh berisi kode indukan; jk berarti jenis_kelamin.",
     `Tanggal hari ini WIB: ${dateInJakarta()}. Ubah “hari ini” menjadi tanggal tersebut.`,
-    "Untuk update/delete, identifier adalah kode/UUID objek setelah kata indukan, breeding, atau anakan.",
+    "Untuk satu target update/delete, identifier adalah kode/UUID objek. Jangan taruh nama di identifier.",
+    "Jika target disebut lewat nama, ras, warna, status, jenis_kelamin, atau kombinasinya, isi selectors dan set identifier=null.",
+    "Untuk update: selectors memilih data lama, values berisi nilai baru. Jangan mencampurkan keduanya.",
+    "Untuk bulk update/delete, gunakan selectors; semua record yang cocok akan dipreview dan dikonfirmasi server.",
+    "Untuk satu insert gunakan values. Untuk beberapa insert gunakan records sebagai array objek lengkap, maksimal 50.",
     "Jika ambigu atau data insert wajib tidak cukup, isi clarification dengan pertanyaan singkat dan turunkan confidence.",
     `Permintaan: ${text}`,
   ].join("\n");
@@ -517,7 +521,7 @@ async function classifyNaturalCrud(text: string): Promise<NaturalCrudIntent> {
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
-            maxOutputTokens: 500,
+            maxOutputTokens: 2000,
             responseMimeType: "application/json",
           },
         }),

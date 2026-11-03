@@ -89,6 +89,19 @@ tambahkan indukan kode PJ-10 bernama Jago Hitam, jantan, warna merah, status seh
 catat breeding pejantan PJ-01 dengan betina BT-02 tanggal kawin hari ini
 ```
 
+Target tidak wajib menggunakan kode. Nama, ras, warna, status, dan jenis
+kelamin dapat dipakai sendiri atau dikombinasikan:
+
+```text
+ubah indukan bernama Shana menjadi status mati
+ubah semua indukan ras Bangkok warna merah menjadi status dijual
+hapus semua anakan warna putih yang statusnya mati
+```
+
+Bulk add juga didukung hingga 50 record dalam satu permintaan, selama setiap
+record memiliki field wajib. Bot menampilkan maksimal 10 item pada preview dan
+jumlah total sebelum konfirmasi.
+
 Jika kalimat ambigu atau data wajib belum lengkap, bot meminta klarifikasi dan
 tidak membuat perubahan.
 
@@ -99,6 +112,8 @@ tidak membuat perubahan.
   allowlist di kode.
 - Gemini hanya menghasilkan intent JSON dan tidak memegang key database.
 - Semua CRUD bahasa biasa memerlukan konfirmasi, termasuk tambah dan update.
+- Bulk update/delete tanpa identifier atau filter ditolak; maksimal 50 record
+  per aksi.
 - Tombol konfirmasi terikat pada user dan chat pembuat permintaan.
 - Pending delete kedaluwarsa setelah 10 menit.
 - Tombol yang sudah dikonfirmasi atau dibatalkan tidak dapat digunakan ulang.

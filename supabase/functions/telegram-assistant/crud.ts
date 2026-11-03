@@ -10,7 +10,9 @@ export type NaturalCrudIntent = {
   operation?: "insert" | "update" | "delete";
   entity?: "indukan" | "breeding" | "anakan";
   identifier?: string | null;
+  selectors?: Record<string, unknown>;
   values?: Record<string, unknown>;
+  records?: Array<Record<string, unknown>>;
   confidence?: number;
   clarification?: string | null;
 };
@@ -334,6 +336,55 @@ export async function processCrudCommand(
   }
 }
 
+function coerceIntentValues(
+  config: EntityConfig,
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  const raw: Record<string, string> = {};
+  for (const [rawKey, rawValue] of Object.entries(input)) {
+    const key = FIELD_ALIASES[rawKey.toLowerCase()] ?? rawKey.toLowerCase();
+    raw[key] = rawValue === null ? "null" : String(rawValue);
+  }
+  return coerceValues(config, raw);
+}
+
+async function resolveNaturalTargets(
+  supabase: SupabaseClient,
+  config: EntityConfig,
+  identifier: string | null | undefined,
+  selectors: Record<string, unknown> | undefined,
+): Promise<Array<Record<string, unknown>>> {
+  if (identifier) return [await resolveRecord(supabase, config, identifier)];
+  const filters = coerceIntentValues(config, selectors ?? {});
+  if (!Object.keys(filters).length) {
+    throw new Error(
+      "Sebutkan minimal satu filter: nama, ras, warna, status, jenis kelamin, kode, atau UUID",
+    );
+  }
+  if (Object.values(filters).some((value) => value === null || value === "")) {
+    throw new Error("Nilai filter tidak boleh kosong");
+  }
+  let query = supabase.from(config.table).select("*").limit(51);
+  for (const [field, value] of Object.entries(filters)) {
+    query = typeof value === "string" && !UUID_PATTERN.test(value) &&
+        !config.dateFields?.has(field)
+      ? query.ilike(field, value)
+      : query.eq(field, value);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  const records = (data ?? []) as Array<Record<string, unknown>>;
+  if (!records.length) {
+    throw new Error("Tidak ada data yang cocok dengan filter tersebut");
+  }
+  if (records.length > 50) {
+    throw new Error(
+      "Lebih dari 50 data cocok. Tambahkan filter yang lebih spesifik",
+    );
+  }
+  return records;
+}
+
 export async function processNaturalCrudIntent(
   supabase: SupabaseClient,
   intent: NaturalCrudIntent,
@@ -351,72 +402,95 @@ export async function processNaturalCrudIntent(
     ) throw new Error("Maksud operasi atau jenis data belum jelas");
     if ((intent.confidence ?? 0) < 0.7) {
       throw new Error(
-        "Permintaan masih ambigu. Sebutkan aksi, jenis data, dan kode dengan jelas",
+        "Permintaan masih ambigu. Tambahkan ciri atau data yang lebih jelas",
       );
     }
     const config = ENTITIES[intent.entity];
-    const rawValues: Record<string, string> = {};
-    for (const [rawKey, rawValue] of Object.entries(intent.values ?? {})) {
-      const key = FIELD_ALIASES[rawKey.toLowerCase()] ?? rawKey.toLowerCase();
-      rawValues[key] = rawValue === null ? "null" : String(rawValue);
-    }
-    const values = coerceValues(config, rawValues);
-    await resolveParentCodes(supabase, values);
+    let recordIds: string[] = [];
+    let recordsToInsert: Array<Record<string, unknown>> = [];
+    let values: Record<string, unknown> = {};
+    let targets: Array<Record<string, unknown>> = [];
 
-    let record: Record<string, unknown> | null = null;
-    if (intent.operation !== "insert") {
-      if (!intent.identifier) {
-        throw new Error(`Kode/UUID ${config.label} wajib disebutkan`);
-      }
-      record = await resolveRecord(supabase, config, intent.identifier);
-    }
     if (intent.operation === "insert") {
-      const missing = config.requiredOnAdd.filter((field) =>
-        values[field] === undefined || values[field] === ""
-      );
-      if (missing.length) {
-        throw new Error(
-          `Data belum lengkap. Field wajib: ${missing.join(", ")}`,
+      const rawRecords = intent.records?.length
+        ? intent.records
+        : [intent.values ?? {}];
+      if (rawRecords.length > 50) throw new Error("Maksimal 50 data per aksi");
+      for (const rawRecord of rawRecords) {
+        const record = coerceIntentValues(config, rawRecord);
+        const missing = config.requiredOnAdd.filter((field) =>
+          record[field] === undefined || record[field] === ""
         );
+        if (missing.length) {
+          throw new Error(`Data tambah belum lengkap: ${missing.join(", ")}`);
+        }
+        await resolveParentCodes(supabase, record);
+        recordsToInsert.push(record);
       }
-    } else if (intent.operation === "update" && !Object.keys(values).length) {
-      throw new Error("Tidak ada field yang akan diubah");
+    } else {
+      targets = await resolveNaturalTargets(
+        supabase,
+        config,
+        intent.identifier,
+        intent.selectors,
+      );
+      recordIds = targets.map((record) => String(record.id));
+      if (intent.operation === "update") {
+        values = coerceIntentValues(config, intent.values ?? {});
+        if (!Object.keys(values).length) {
+          throw new Error("Tidak ada field yang akan diubah");
+        }
+        await resolveParentCodes(supabase, values);
+      }
     }
 
-    const recordLabel = record
-      ? describe(record, config)
-      : String(values.kode ?? config.label);
-    const impact = intent.operation === "delete" && record
-      ? await deletionImpact(supabase, config, String(record.id))
-      : "";
+    const count = intent.operation === "insert"
+      ? recordsToInsert.length
+      : targets.length;
+    const previewRecords = intent.operation === "insert"
+      ? recordsToInsert
+      : targets;
+    const preview = previewRecords.slice(0, 10).map((record) =>
+      String(record.kode ?? record.nama ?? record.id ?? config.label)
+    ).join(", ");
+    const more = count > 10 ? `, dan ${count - 10} lainnya` : "";
     const actionLabel = intent.operation === "insert"
       ? "Tambah"
       : intent.operation === "update"
       ? "Ubah"
       : "Hapus";
-    const detail = intent.operation === "delete"
-      ? impact
-      : `\nData: ${stringifyIntentValues(values)}`;
+    const detail = intent.operation === "update"
+      ? `\nPerubahan: ${stringifyIntentValues(values)}`
+      : intent.operation === "delete" && config.table === "breeding"
+      ? "\n⚠️ Anakan yang terkait dengan breeding terpilih juga akan terhapus."
+      : intent.operation === "delete" && config.table === "ayam_induk"
+      ? "\nℹ️ Referensi indukan pada breeding terkait akan dikosongkan."
+      : "";
+    const payload = intent.operation === "insert"
+      ? { records: recordsToInsert }
+      : intent.operation === "update"
+      ? { record_ids: recordIds, values }
+      : { record_ids: recordIds };
+    const recordLabel = `${count} ${config.label}: ${preview}${more}`;
     const { data: pending, error } = await supabase.from(
       "telegram_pending_actions",
     ).insert({
       action: intent.operation,
       table_name: config.table,
-      record_id: record?.id ?? null,
+      record_id: recordIds[0] ?? null,
       record_label: recordLabel,
-      payload: values,
+      payload,
       requested_by: userId,
       chat_id: chatId,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     }).select("id").single();
     if (error) throw error;
     return {
-      text:
-        `Konfirmasi ${actionLabel.toLowerCase()} ${config.label} ${recordLabel}?${detail}`,
+      text: `Konfirmasi ${actionLabel.toLowerCase()} ${recordLabel}?${detail}`,
       replyMarkup: {
         inline_keyboard: [[
           {
-            text: `✅ Konfirmasi ${actionLabel}`,
+            text: `✅ Konfirmasi ${actionLabel} (${count})`,
             callback_data: `crud:confirm:${pending.id}`,
           },
           { text: "Batal", callback_data: `crud:cancel:${pending.id}` },
@@ -468,18 +542,28 @@ export async function processCrudCallback(
   if (!allowedTables.has(action.table_name)) {
     throw new Error("Target tabel tidak diizinkan");
   }
+  const payload = action.payload ?? {};
+  const recordIds = Array.isArray(payload.record_ids)
+    ? payload.record_ids.filter((id: unknown) => typeof id === "string")
+    : action.record_id
+    ? [action.record_id]
+    : [];
   if (action.action === "insert") {
+    const records = Array.isArray(payload.records) ? payload.records : payload;
     const { error: insertError } = await supabase.from(action.table_name)
-      .insert(action.payload ?? {});
+      .insert(records);
     if (insertError) throw insertError;
   } else if (action.action === "update") {
+    if (!recordIds.length) throw new Error("Target update kosong");
+    const values = payload.values ?? payload;
     const { error: updateError } = await supabase.from(action.table_name)
-      .update(action.payload ?? {}).eq("id", action.record_id);
+      .update(values).in("id", recordIds);
     if (updateError) throw updateError;
   } else {
+    if (!recordIds.length) throw new Error("Target hapus kosong");
     const { error: deleteError } = await supabase.from(action.table_name)
       .delete()
-      .eq("id", action.record_id);
+      .in("id", recordIds);
     if (deleteError) throw deleteError;
   }
   await supabase.from("telegram_pending_actions").update({
