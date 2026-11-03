@@ -1,4 +1,11 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import {
+  auditedDelete,
+  auditedInsert,
+  auditedUpdate,
+  latestUndoGroup,
+  undoAuditGroup,
+} from "./audit.ts";
 
 export type InlineKeyboard = {
   inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
@@ -266,9 +273,10 @@ export async function processCrudCommand(
       );
       if (missing.length) throw new Error(`Field wajib: ${missing.join(", ")}`);
       await resolveParentCodes(supabase, values);
-      const { data, error } = await supabase.from(config.table).insert(values)
-        .select().single();
-      if (error) throw error;
+      const [data] = await auditedInsert(supabase, config.table, values, {
+        userId,
+        chatId,
+      });
       return {
         text: `✅ ${config.label} ${
           describe(data, config)
@@ -286,11 +294,13 @@ export async function processCrudCommand(
         throw new Error("Tidak ada field yang akan diubah");
       }
       await resolveParentCodes(supabase, values);
-      const { error } = await supabase.from(config.table).update(values).eq(
-        "id",
-        record.id,
+      await auditedUpdate(
+        supabase,
+        config.table,
+        [String(record.id)],
+        values,
+        { userId, chatId },
       );
-      if (error) throw error;
       return {
         text: `✅ ${config.label} ${
           describe(record, config)
@@ -538,6 +548,17 @@ export async function processCrudCallback(
     return `Dibatalkan. ${action.record_label} tidak dihapus.`;
   }
 
+  if (action.action === "undo") {
+    const groupId = action.payload?.audit_group_id;
+    if (typeof groupId !== "string") throw new Error("Audit group tidak valid");
+    const count = await undoAuditGroup(supabase, groupId, userId);
+    await supabase.from("telegram_pending_actions").update({
+      status: "confirmed",
+      executed_at: new Date().toISOString(),
+    }).eq("id", actionId);
+    return `✅ ${count} perubahan berhasil dibatalkan.`;
+  }
+
   const allowedTables = new Set(["ayam_induk", "breeding", "ayam_anakan"]);
   if (!allowedTables.has(action.table_name)) {
     throw new Error("Target tabel tidak diizinkan");
@@ -550,21 +571,26 @@ export async function processCrudCallback(
     : [];
   if (action.action === "insert") {
     const records = Array.isArray(payload.records) ? payload.records : payload;
-    const { error: insertError } = await supabase.from(action.table_name)
-      .insert(records);
-    if (insertError) throw insertError;
+    await auditedInsert(supabase, action.table_name, records, {
+      userId,
+      chatId,
+      pendingActionId: actionId,
+    });
   } else if (action.action === "update") {
     if (!recordIds.length) throw new Error("Target update kosong");
     const values = payload.values ?? payload;
-    const { error: updateError } = await supabase.from(action.table_name)
-      .update(values).in("id", recordIds);
-    if (updateError) throw updateError;
+    await auditedUpdate(supabase, action.table_name, recordIds, values, {
+      userId,
+      chatId,
+      pendingActionId: actionId,
+    });
   } else {
     if (!recordIds.length) throw new Error("Target hapus kosong");
-    const { error: deleteError } = await supabase.from(action.table_name)
-      .delete()
-      .in("id", recordIds);
-    if (deleteError) throw deleteError;
+    await auditedDelete(supabase, action.table_name, recordIds, {
+      userId,
+      chatId,
+      pendingActionId: actionId,
+    });
   }
   await supabase.from("telegram_pending_actions").update({
     status: "confirmed",
@@ -576,4 +602,43 @@ export async function processCrudCallback(
     ? "diperbarui"
     : "dihapus";
   return `✅ ${action.record_label} berhasil ${verb}.`;
+}
+
+export async function createUndoConfirmation(
+  supabase: SupabaseClient,
+  userId: number,
+  chatId: number,
+): Promise<CrudReply> {
+  try {
+    const latest = await latestUndoGroup(supabase, userId);
+    if (!latest) return { text: "Tidak ada perubahan yang dapat dibatalkan." };
+    const { data: pending, error } = await supabase.from(
+      "telegram_pending_actions",
+    ).insert({
+      action: "undo",
+      table_name: "ayam_induk",
+      record_id: null,
+      record_label: `undo ${latest.count} perubahan`,
+      payload: { audit_group_id: latest.groupId },
+      requested_by: userId,
+      chat_id: chatId,
+      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    }).select("id").single();
+    if (error) throw error;
+    return {
+      text: `Batalkan perubahan terakhir?\n\n${latest.summary}`,
+      replyMarkup: {
+        inline_keyboard: [[
+          {
+            text: "↩️ Konfirmasi Undo",
+            callback_data: `crud:confirm:${pending.id}`,
+          },
+          { text: "Batal", callback_data: `crud:cancel:${pending.id}` },
+        ]],
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { text: `❌ ${message}` };
+  }
 }

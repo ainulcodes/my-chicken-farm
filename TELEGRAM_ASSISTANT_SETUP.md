@@ -71,6 +71,8 @@ Setelah aktif, kirim `/help` dan `/ringkasan` ke bot.
 - `/menetas 14` — jadwal menetas dalam 14 hari; rentang 1–60 hari.
 - `/id` — menampilkan numeric Telegram user ID.
 - `/crud` — bantuan tambah, ubah, dan hapus data.
+- `/undo` — preview dan konfirmasi pembatalan perubahan CRUD terakhir.
+- `/riwayat` — melihat 10 grup perubahan Telegram terakhir.
 - Pertanyaan biasa — dijawab Gemini berdasarkan snapshot database, maksimal 500
   baris per tabel.
 - Reply pesan — teks yang dibalas dipakai sebagai konteks pertanyaan lanjutan,

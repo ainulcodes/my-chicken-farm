@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
+  createUndoConfirmation,
   CRUD_HELP,
   type InlineKeyboard,
   type NaturalCrudIntent,
@@ -7,6 +8,7 @@ import {
   processCrudCommand,
   processNaturalCrudIntent,
 } from "./crud.ts";
+import { auditHistory } from "./audit.ts";
 
 type TelegramUser = {
   id: number;
@@ -605,6 +607,8 @@ const HELP = [
   "/menetas [hari] — jadwal menetas (default 7 hari, maksimal 60)",
   "/id — tampilkan Telegram user ID",
   "/crud — bantuan tambah, ubah, dan hapus data",
+  "/undo — batalkan perubahan CRUD terakhir",
+  "/riwayat — lihat 10 perubahan terakhir",
   "/help — bantuan",
   "",
   "Anda juga dapat bertanya dengan bahasa biasa jika Gemini sudah dikonfigurasi.",
@@ -698,7 +702,42 @@ export async function handleRequest(request: Request): Promise<Response> {
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
     const contextualText = contextualMessageText(message);
-    if (/^\/(tambah|ubah|hapus)(?:@\w+)?\b/i.test(message.text)) {
+    if (/^\/riwayat(?:@\w+)?\b/i.test(message.text)) {
+      const admin = createClient(
+        requiredEnv("SUPABASE_URL"),
+        supabaseAdminKey(),
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      const history = await auditHistory(admin, message.from.id);
+      await sendTelegramMessage(
+        message.chat.id,
+        history,
+        undefined,
+        message.message_id,
+      );
+    } else if (
+      /^\/undo(?:@\w+)?\b/i.test(message.text) ||
+      /\b(batalkan|undo)\s+(perubahan|aksi)(?:\s+yang)?\s+terakhir\b/i.test(
+        message.text,
+      )
+    ) {
+      const admin = createClient(
+        requiredEnv("SUPABASE_URL"),
+        supabaseAdminKey(),
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      const reply = await createUndoConfirmation(
+        admin,
+        message.from.id,
+        message.chat.id,
+      );
+      await sendTelegramMessage(
+        message.chat.id,
+        reply.text,
+        reply.replyMarkup,
+        message.message_id,
+      );
+    } else if (/^\/(tambah|ubah|hapus)(?:@\w+)?\b/i.test(message.text)) {
       const admin = createClient(
         requiredEnv("SUPABASE_URL"),
         supabaseAdminKey(),
