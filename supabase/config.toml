@@ -1,0 +1,6 @@
+project_id = "my-chicken-farm"
+
+[functions.telegram-assistant]
+# Telegram tidak mengirim Supabase JWT. Keamanan endpoint ditangani dengan
+# X-Telegram-Bot-Api-Secret-Token dan allowlist Telegram user ID.
+verify_jwt = false
