@@ -1,4 +1,12 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import {
+  CRUD_HELP,
+  type InlineKeyboard,
+  type NaturalCrudIntent,
+  processCrudCallback,
+  processCrudCommand,
+  processNaturalCrudIntent,
+} from "./crud.ts";
 
 type TelegramUser = {
   id: number;
@@ -18,6 +26,12 @@ type TelegramMessage = {
 type TelegramUpdate = {
   update_id: number;
   message?: TelegramMessage;
+  callback_query?: {
+    id: string;
+    from: TelegramUser;
+    message?: TelegramMessage;
+    data?: string;
+  };
 };
 
 type Indukan = {
@@ -62,13 +76,22 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+function supabaseReadKey(): string {
+  const keys = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS")?.trim();
+  if (keys) {
+    const parsed = JSON.parse(keys) as Record<string, string>;
+    if (parsed.default) return parsed.default;
+  }
+  // Kompatibilitas untuk project yang masih memakai legacy anon key.
+  return requiredEnv("SUPABASE_ANON_KEY");
+}
+
 function supabaseAdminKey(): string {
   const keys = Deno.env.get("SUPABASE_SECRET_KEYS")?.trim();
   if (keys) {
     const parsed = JSON.parse(keys) as Record<string, string>;
     if (parsed.default) return parsed.default;
   }
-  // Kompatibilitas untuk project yang masih memakai legacy service_role key.
   return requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
 
@@ -118,16 +141,34 @@ export function splitTelegramText(text: string, maxLength = 4000): string[] {
   return parts;
 }
 
+export function markdownToTelegramHtml(text: string): string {
+  const escaped = text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replace(/^\s*\*\s+/gm, "• ");
+  return escaped
+    .replace(/\*\*(.+?)\*\*/gs, "<b>$1</b>")
+    .replace(/(^|[\s(])\*([^*\n]+?)\*(?=$|[\s).,:;!?])/gm, "$1<i>$2</i>");
+}
+
 async function sendTelegramMessage(
   chatId: number,
   text: string,
+  replyMarkup?: InlineKeyboard,
 ): Promise<void> {
   const token = requiredEnv("TELEGRAM_BOT_TOKEN");
-  for (const part of splitTelegramText(text)) {
+  const parts = splitTelegramText(text);
+  for (const [index, part] of parts.entries()) {
     const response = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: part }),
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: markdownToTelegramHtml(part),
+        parse_mode: "HTML",
+        ...(replyMarkup && index === 0 ? { reply_markup: replyMarkup } : {}),
+      }),
     });
     if (!response.ok) {
       const detail = await response.text();
@@ -135,6 +176,52 @@ async function sendTelegramMessage(
         `Telegram sendMessage failed (${response.status}): ${detail}`,
       );
     }
+  }
+}
+
+async function answerCallbackQuery(
+  callbackQueryId: string,
+  text: string,
+): Promise<void> {
+  await fetch(
+    `${TELEGRAM_API}/bot${
+      requiredEnv("TELEGRAM_BOT_TOKEN")
+    }/answerCallbackQuery`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text: text.slice(0, 200),
+      }),
+    },
+  );
+}
+
+async function editTelegramMessage(
+  chatId: number,
+  messageId: number,
+  text: string,
+): Promise<void> {
+  const response = await fetch(
+    `${TELEGRAM_API}/bot${requiredEnv("TELEGRAM_BOT_TOKEN")}/editMessageText`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text: markdownToTelegramHtml(text),
+        parse_mode: "HTML",
+      }),
+    },
+  );
+  if (!response.ok) {
+    console.error(
+      "Telegram editMessageText failed",
+      response.status,
+      await response.text(),
+    );
   }
 }
 
@@ -308,7 +395,14 @@ async function askGemini(
   if (!apiKey) {
     return "Pertanyaan bebas membutuhkan GEMINI_API_KEY. Perintah /ringkasan, /indukan, dan /menetas tetap dapat digunakan tanpa AI.";
   }
-  const model = Deno.env.get("GEMINI_MODEL")?.trim() || "gemini-3.8-flash";
+  const primaryModel = Deno.env.get("GEMINI_MODEL")?.trim() ||
+    "gemini-3.8-flash";
+  const fallbackModels = (Deno.env.get("GEMINI_FALLBACK_MODELS") ||
+    "gemini-3.5-flash-lite,gemini-3.1-flash-lite")
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+  const models = [...new Set([primaryModel, ...fallbackModels])];
   const prompt = [
     "Anda adalah asisten read-only peternakan ayam. Jawab dalam Bahasa Indonesia yang ringkas.",
     "Gunakan HANYA data JSON yang diberikan. Jangan mengarang data atau mengklaim telah mengubah database.",
@@ -316,42 +410,135 @@ async function askGemini(
     `Pertanyaan pengguna: ${question}`,
     `Data peternakan: ${farmContext}`,
   ].join("\n\n");
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${
-      encodeURIComponent(model)
-    }:generateContent`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 800 },
-      }),
-    },
-  );
-  if (!response.ok) {
-    const detail = await response.text();
-    console.error("Gemini request failed", response.status, detail);
-    return "Layanan AI sedang tidak tersedia. Coba /ringkasan, /indukan, atau /menetas.";
+  const requestBody = JSON.stringify({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: { maxOutputTokens: 800 },
+  });
+
+  for (const model of models) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${
+          encodeURIComponent(model)
+        }:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: requestBody,
+        },
+      );
+      if (response.ok) {
+        const payload = await response.json();
+        const text = payload?.candidates?.[0]?.content?.parts
+          ?.map((part: { text?: string }) => part.text ?? "")
+          .join("")
+          .trim();
+        if (text) return text;
+        console.warn("Gemini returned an empty response", model);
+        break;
+      }
+
+      const detail = await response.text();
+      console.error("Gemini request failed", model, response.status, detail);
+      const retryable = response.status === 429 || response.status >= 500;
+      if (!retryable) break;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
+      }
+    }
   }
-  const payload = await response.json();
-  const text = payload?.candidates?.[0]?.content?.parts
-    ?.map((part: { text?: string }) => part.text ?? "")
-    .join("")
-    .trim();
-  return text || "AI tidak menghasilkan jawaban. Silakan ubah pertanyaannya.";
+
+  return "Layanan AI sedang sibuk. Semua model cadangan sudah dicoba. Coba lagi sebentar atau gunakan /ringkasan, /indukan, atau /menetas.";
+}
+
+function looksLikeNaturalCrud(text: string): boolean {
+  return /\b(tambah|tambahkan|catat|buat|ubah|update|ganti|tandai|hapus|delete)\b/i
+    .test(text);
+}
+
+async function classifyNaturalCrud(text: string): Promise<NaturalCrudIntent> {
+  const apiKey = requiredEnv("GEMINI_API_KEY");
+  const primaryModel = Deno.env.get("GEMINI_MODEL")?.trim() ||
+    "gemini-3.8-flash";
+  const fallbackModels = (Deno.env.get("GEMINI_FALLBACK_MODELS") ||
+    "gemini-3.5-flash-lite,gemini-3.1-flash-lite")
+    .split(",").map((model) => model.trim()).filter(Boolean);
+  const models = [...new Set([primaryModel, ...fallbackModels])];
+  const prompt = [
+    "Ubah permintaan CRUD peternakan berikut menjadi SATU objek JSON, tanpa markdown.",
+    'Schema: {"operation":"insert|update|delete","entity":"indukan|breeding|anakan","identifier":"kode atau UUID atau null","values":{},"confidence":0.0,"clarification":null}',
+    "Gunakan field snake_case berikut saja:",
+    "indukan: kode,nama,marga,jenis_kelamin,ras,warna,tanggal_lahir,status",
+    "breeding: pejantan_id,betina_id,tanggal_kawin,tanggal_menetas,jumlah_anakan",
+    "anakan: breeding_id,kode,nama,marga,jenis_kelamin,warna,status",
+    "Alias: pejantan/betina boleh berisi kode indukan; jk berarti jenis_kelamin.",
+    `Tanggal hari ini WIB: ${dateInJakarta()}. Ubah “hari ini” menjadi tanggal tersebut.`,
+    "Untuk update/delete, identifier adalah kode/UUID objek setelah kata indukan, breeding, atau anakan.",
+    "Jika ambigu atau data insert wajib tidak cukup, isi clarification dengan pertanyaan singkat dan turunkan confidence.",
+    `Permintaan: ${text}`,
+  ].join("\n");
+
+  for (const model of models) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${
+        encodeURIComponent(model)
+      }:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 500,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    );
+    if (!response.ok) {
+      console.error(
+        "CRUD classifier failed",
+        model,
+        response.status,
+        await response.text(),
+      );
+      if (response.status === 429 || response.status >= 500) continue;
+      break;
+    }
+    const payload = await response.json();
+    const raw = payload?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!raw) continue;
+    try {
+      return JSON.parse(
+        raw.replace(/^```json\s*|\s*```$/g, ""),
+      ) as NaturalCrudIntent;
+    } catch (error) {
+      console.error("Invalid CRUD classifier JSON", model, raw, error);
+    }
+  }
+  throw new Error(
+    "AI belum dapat memahami permintaan CRUD. Coba gunakan /crud.",
+  );
 }
 
 const HELP = [
-  "Asisten My Chicken Farm (read-only)",
+  "Asisten My Chicken Farm",
   "",
   "/ringkasan — statistik peternakan",
   "/indukan KODE/NAMA — cari indukan",
   "/menetas [hari] — jadwal menetas (default 7 hari, maksimal 60)",
   "/id — tampilkan Telegram user ID",
+  "/crud — bantuan tambah, ubah, dan hapus data",
   "/help — bantuan",
   "",
   "Anda juga dapat bertanya dengan bahasa biasa jika Gemini sudah dikonfigurasi.",
+  "CRUD bahasa biasa akan selalu menampilkan preview dan tombol konfirmasi.",
 ].join("\n");
 
 async function answer(
@@ -363,6 +550,7 @@ async function answer(
   const command = rawCommand.toLowerCase().split("@")[0];
   if (command === "/start" || command === "/help") return HELP;
   if (command === "/id") return `Telegram user ID Anda: ${userId}`;
+  if (command === "/crud") return CRUD_HELP;
   if (command === "/ringkasan") return await summary(supabase);
   if (command === "/indukan") {
     return await findIndukan(supabase, args.join(" "));
@@ -388,6 +576,37 @@ export async function handleRequest(request: Request): Promise<Response> {
     }
 
     const update = await request.json() as TelegramUpdate;
+    const callback = update.callback_query;
+    if (callback?.data && callback.message) {
+      const allowed = allowedUserIds();
+      const chat = callback.message.chat;
+      if (chat.type !== "private" || !allowed.has(callback.from.id)) {
+        return jsonResponse({ ok: true, ignored: true });
+      }
+      const admin = createClient(
+        requiredEnv("SUPABASE_URL"),
+        supabaseAdminKey(),
+        {
+          auth: { persistSession: false, autoRefreshToken: false },
+        },
+      );
+      try {
+        const result = await processCrudCallback(
+          admin,
+          callback.data,
+          callback.from.id,
+          chat.id,
+        );
+        await answerCallbackQuery(callback.id, result);
+        await editTelegramMessage(chat.id, callback.message.message_id, result);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await answerCallbackQuery(callback.id, `Gagal: ${message}`);
+        console.error("CRUD callback failed", error);
+      }
+      return jsonResponse({ ok: true });
+    }
+
     const message = update.message;
     if (!message?.text || !message.from) {
       return jsonResponse({ ok: true, ignored: true });
@@ -405,11 +624,63 @@ export async function handleRequest(request: Request): Promise<Response> {
 
     const supabase = createClient(
       requiredEnv("SUPABASE_URL"),
-      supabaseAdminKey(),
+      supabaseReadKey(),
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
-    const responseText = await answer(supabase, message.text, message.from.id);
-    await sendTelegramMessage(message.chat.id, responseText);
+    if (/^\/(tambah|ubah|hapus)(?:@\w+)?\b/i.test(message.text)) {
+      const admin = createClient(
+        requiredEnv("SUPABASE_URL"),
+        supabaseAdminKey(),
+        {
+          auth: { persistSession: false, autoRefreshToken: false },
+        },
+      );
+      const reply = await processCrudCommand(
+        admin,
+        message.text,
+        message.from.id,
+        message.chat.id,
+      );
+      if (reply) {
+        await sendTelegramMessage(
+          message.chat.id,
+          reply.text,
+          reply.replyMarkup,
+        );
+      }
+    } else if (looksLikeNaturalCrud(message.text)) {
+      const admin = createClient(
+        requiredEnv("SUPABASE_URL"),
+        supabaseAdminKey(),
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      try {
+        const intent = await classifyNaturalCrud(message.text);
+        const reply = await processNaturalCrudIntent(
+          admin,
+          intent,
+          message.from.id,
+          message.chat.id,
+        );
+        await sendTelegramMessage(
+          message.chat.id,
+          reply.text,
+          reply.replyMarkup,
+        );
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : String(error);
+        await sendTelegramMessage(message.chat.id, `❌ ${errorMessage}`);
+      }
+    } else {
+      const responseText = await answer(
+        supabase,
+        message.text,
+        message.from.id,
+      );
+      await sendTelegramMessage(message.chat.id, responseText);
+    }
     return jsonResponse({ ok: true });
   } catch (error) {
     console.error("telegram-assistant error", error);

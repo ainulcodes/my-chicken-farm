@@ -30,11 +30,12 @@ supabase secrets set \
   TELEGRAM_WEBHOOK_SECRET='SECRET_ACAK' \
   ALLOWED_TELEGRAM_USER_IDS='USER_ID_1,USER_ID_2' \
   GEMINI_API_KEY='GEMINI_API_KEY' \
-  GEMINI_MODEL='gemini-3.8-flash'
+  GEMINI_MODEL='gemini-3.8-flash' \
+  GEMINI_FALLBACK_MODELS='gemini-3.5-flash-lite,gemini-3.1-flash-lite'
 supabase functions deploy telegram-assistant --no-verify-jwt
 ```
 
-`SUPABASE_URL` dan `SUPABASE_SECRET_KEYS` otomatis tersedia pada Edge Function
+`SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEYS` otomatis tersedia pada Edge Function
 yang di-host Supabase. Jangan menambahkannya sebagai custom secret; prefix
 `SUPABASE_` dicadangkan oleh platform.
 
@@ -69,6 +70,7 @@ Setelah aktif, kirim `/help` dan `/ringkasan` ke bot.
 - `/indukan KODE atau NAMA` — pencarian maksimal 10 hasil.
 - `/menetas 14` — jadwal menetas dalam 14 hari; rentang 1–60 hari.
 - `/id` — menampilkan numeric Telegram user ID.
+- `/crud` — bantuan tambah, ubah, dan hapus data.
 - Pertanyaan biasa — dijawab Gemini berdasarkan snapshot database, maksimal 500
   baris per tabel.
 
@@ -79,6 +81,8 @@ Setelah aktif, kirim `/help` dan `/ringkasan` ke bot.
 - Pesan grup ditolak; bot hanya menjawab private chat agar data tidak bocor.
 - Service-role key hanya berada di secret server dan tidak dikirim ke browser.
 - AI tidak menerima fungsi SQL dan tidak memiliki operasi tulis.
+- Operasi tulis memakai command terstruktur; hapus selalu meminta konfirmasi.
+- Kegagalan sementara `429`/`5xx` dicoba ulang dan dialihkan ke model fallback.
 - Karena snapshot AI dibatasi 500 baris per tabel, gunakan perintah deterministik
   atau tambahkan agregasi server-side bila data tumbuh lebih besar.
 - Rotasi token bot melalui `@BotFather` jika token pernah terlihat orang lain.

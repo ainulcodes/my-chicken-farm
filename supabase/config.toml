@@ -4,3 +4,7 @@ project_id = "my-chicken-farm"
 # Telegram tidak mengirim Supabase JWT. Keamanan endpoint ditangani dengan
 # X-Telegram-Bot-Api-Secret-Token dan allowlist Telegram user ID.
 verify_jwt = false
+
+[functions.hatch-reminders]
+# Dipanggil oleh Supabase Cron dan diamankan dengan X-Cron-Secret.
+verify_jwt = false

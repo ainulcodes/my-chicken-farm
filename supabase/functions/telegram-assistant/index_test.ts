@@ -2,9 +2,11 @@ import { assertEquals } from "jsr:@std/assert@1";
 import {
   addDays,
   dateInJakarta,
+  markdownToTelegramHtml,
   secureEqual,
   splitTelegramText,
 } from "./index.ts";
+import { parseKeyValues } from "./crud.ts";
 
 Deno.test("secureEqual membandingkan nilai dan panjang", () => {
   assertEquals(secureEqual("secret_123", "secret_123"), true);
@@ -24,4 +26,23 @@ Deno.test("dateInJakarta memakai zona waktu Asia/Jakarta", () => {
 Deno.test("splitTelegramText menjaga setiap bagian di bawah limit", () => {
   const result = splitTelegramText("baris satu\nbaris dua\nbaris tiga", 15);
   assertEquals(result, ["baris satu", "baris dua", "baris tiga"]);
+});
+
+Deno.test("markdownToTelegramHtml mengubah format dan mengamankan HTML", () => {
+  assertEquals(
+    markdownToTelegramHtml("**Ringkasan**\n* Sehat: 3\n<rahasia>"),
+    "<b>Ringkasan</b>\n• Sehat: 3\n&lt;rahasia&gt;",
+  );
+});
+
+Deno.test("parseKeyValues mendukung alias dan nilai dengan spasi", () => {
+  assertEquals(
+    parseKeyValues('kode=PJ-01 nama="Jago Merah" jk=Jantan lahir=2026-01-02'),
+    {
+      kode: "PJ-01",
+      nama: "Jago Merah",
+      jenis_kelamin: "Jantan",
+      tanggal_lahir: "2026-01-02",
+    },
+  );
 });
